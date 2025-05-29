@@ -1,26 +1,11 @@
-<<<<<<< HEAD
-import { createBrowserRouter, Link } from "react-router-dom";
-
-export const router = createBrowserRouter([
-  {
-    path: "/",
-    element: (
-      <div>
-        <h1>Hello World</h1>
-        <Link to="about">About Us</Link>
-      </div>
-    ),
-  },
-  {
-    path: "about",
-    element: <div>About</div>,
-  },
-]);
-=======
-import { Navigate } from "react-router-dom";
-import LaptopList from "../pages/LaptopList";
+import { Navigate, Route } from "react-router-dom";
 import AdminLayout from "../components/layouts/AdminLayout";
 import Dashboard from "../pages/Dashboard"; // THÊM
+import ListLaptop from "../pages/LaptopList";
+import CategoryList from "../pages/CategoryList";
+import ManufacturerList from "../pages/ManufacturerList";
+import OrderList from "../pages/OrderList";
+import UserList from "../pages/UserList";
 
 const routes = [
   {
@@ -28,11 +13,16 @@ const routes = [
     element: <AdminLayout />,
     children: [
       { index: true, element: <Navigate to="dashboard" /> },
-      { path: "dashboard", element: <Dashboard /> }, // THÊM
-      { path: "laptops", element: <LaptopList /> },
+      { path: "dashboard", element: <Dashboard /> },
+      { path: "laptops", element: <ListLaptop /> }, 
+      { path: "categories", element: <CategoryList /> },
+      { path: "manufacturers", element: <ManufacturerList /> },
+      { path: "orders", element: <OrderList /> },
+      { path: "users", element: <UserList /> },
     ],
   },
 ];
+
 
 export default routes;
 >>>>>>> b0aaf8e (gdadmin+mockdata)

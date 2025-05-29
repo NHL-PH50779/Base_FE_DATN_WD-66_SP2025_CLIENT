@@ -44,6 +44,7 @@
     "react-lazy-load-image-component": "^1.6.3",
     "react-router-dom": "^7.6.2",
     "styled-components": "^6.1.18",
+    "recharts": "^2.15.3",
     "zustand": "^4.5.7"
   }
 }
