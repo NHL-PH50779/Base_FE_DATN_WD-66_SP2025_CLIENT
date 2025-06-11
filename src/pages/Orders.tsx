@@ -1,6 +1,5 @@
 import React from "react";
 
-// Giả lập dữ liệu đơn hàng
 const ordersData = [
   {
     id: 1,
