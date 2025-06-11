@@ -1,27 +1,17 @@
-import { Navigate, Route } from "react-router-dom";
-import AdminLayout from "../components/layouts/AdminLayout";
-import Dashboard from "../pages/Dashboard"; // THÊM
-import ListLaptop from "../pages/LaptopList";
-import CategoryList from "../pages/CategoryList";
-import ManufacturerList from "../pages/ManufacturerList";
-import OrderList from "../pages/OrderList";
-import UserList from "../pages/UserList";
+import { createBrowserRouter, Link } from "react-router-dom";
 
-const routes = [
+export const router = createBrowserRouter([
   {
-    path: "/admin",
-    element: <AdminLayout />,
-    children: [
-      { index: true, element: <Navigate to="dashboard" /> },
-      { path: "dashboard", element: <Dashboard /> },
-      { path: "laptops", element: <ListLaptop /> }, 
-      { path: "categories", element: <CategoryList /> },
-      { path: "manufacturers", element: <ManufacturerList /> },
-      { path: "orders", element: <OrderList /> },
-      { path: "users", element: <UserList /> },
-    ],
+    path: "/",
+    element: (
+      <div>
+        <h1>Hello World</h1>
+        <Link to="about">About Us</Link>
+      </div>
+    ),
   },
-];
-
-
-export default routes;
+  {
+    path: "about",
+    element: <div>About</div>,
+  },
+]);

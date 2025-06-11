@@ -12,7 +12,10 @@ const ClientLayout = () => {
     location.pathname === "/login" ||
     location.pathname === "/register" ||
     location.pathname === "/forgot-password" ||
-    location.pathname === "/cart";
+    location.pathname === "/cart" ||
+    location.pathname === "/news" ||
+    location.pathname === "/about" ||
+    location.pathname === "/contact";
 
   return (
     <>

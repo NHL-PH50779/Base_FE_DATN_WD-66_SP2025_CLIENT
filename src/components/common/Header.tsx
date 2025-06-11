@@ -5,19 +5,31 @@ import {
   Typography,
   styled,
   IconButton,
+  InputBase,
 } from "@mui/material";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import { useState } from "react";
 
 const menus = [
   { label: "Trang chủ", link: "/" },
   { label: "Danh mục", link: "/shop" },
   { label: "Về chúng tôi", link: "/about" },
   { label: "Liên hệ", link: "/contact" },
+  { label: "Tin tức", link: "/news" },
 ];
 
 const Header = () => {
+  const navigate = useNavigate();
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearchSubmit = (e: any) => {
+    if (e.key === "Enter" && searchValue.trim() !== "") {
+      navigate(`/search?query=${encodeURIComponent(searchValue.trim())}`);
+    }
+  };
+
   return (
     <Wrapper direction="row" justifyContent="space-between" alignItems="center">
       {/* Logo */}
@@ -30,7 +42,7 @@ const Header = () => {
         direction="row"
         spacing={6}
         sx={{
-          display: { xs: "none", md: "flex" }, // Ẩn menu trên mobile
+          display: { xs: "none", md: "flex" },
         }}
       >
         {menus.map((menu, index) => (
@@ -45,19 +57,33 @@ const Header = () => {
         ))}
       </Stack>
 
-      {/* Icons */}
-      <Stack direction="row" spacing={3} alignItems="center">
+      {/* Search + Icons */}
+      <Stack direction="row" spacing={2} alignItems="center">
+        {/* Search Field */}
+        <SearchContainer>
+          <InputBase
+            placeholder="Tìm sản phẩm..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleSearchSubmit}
+            sx={{ ml: 1, flex: 1 }}
+          />
+          <SearchIcon color="action" />
+        </SearchContainer>
+
+        {/* User */}
         <Link to={"/login"}>
           <IconButton>
             <img src="/user.svg" alt="user" width={20} />
           </IconButton>
         </Link>
-        <IconButton>
-          <SearchIcon />
-        </IconButton>
+
+        {/* Favorites */}
         <IconButton>
           <FavoriteBorderIcon />
         </IconButton>
+
+        {/* Cart */}
         <Badge color="secondary" badgeContent={0}>
           <Link to="/cart">
             <IconButton>
@@ -94,5 +120,17 @@ const MenuLink = styled(Typography)(({ theme }) => ({
   "&.active": {
     borderBottom: `2px solid ${theme.palette.primary.main}`,
     color: theme.palette.primary.main,
+  },
+}));
+
+const SearchContainer = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  backgroundColor: "#f1f1f1",
+  padding: "4px 10px",
+  borderRadius: 20,
+  width: 200,
+  [theme.breakpoints.down("sm")]: {
+    display: "none", // Ẩn trên mobile nếu cần
   },
 }));
