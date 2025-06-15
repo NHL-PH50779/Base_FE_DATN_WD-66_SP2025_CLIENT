@@ -583,29 +583,29 @@ const ProductDetail = () => {
                         const isSelected = product.attributes.some((item) => item.value_id === av.id);
                         const isDisabled = !isAvailable || !potentialVariant || potentialVariant.quantity <= 0;
                         return (
-                          <Chip
-                            key={av.id}
-                            label={av.value}
-                            clickable
-                            color={isSelected ? "primary" : "default"}
-                            variant={isSelected ? "contained" : "outlined"}
-                            onClick={() => {
-                              if (!isDisabled && potentialVariant) {
-                                handleVariantSelect(potentialVariant);
-                              }
-                            }}
-                            disabled={isDisabled}
-                            sx={{
-                              borderColor: isSelected ? "primary.main" : "grey.400",
-                              "&:hover": {
-                                backgroundColor: isSelected ? "primary.dark" : "grey.200",
-                                opacity: isDisabled ? 0.6 : 1,
-                              },
-                              opacity: isDisabled ? 0.5 : 1,
-                              cursor: isDisabled ? "not-allowed" : "pointer",
-                              transition: "all 0.2s ease-in-out",
-                            }}
-                          />
+                        <Chip
+  key={av.id}
+  label={av.value}
+  clickable
+  color={isSelected ? "primary" : "default"}
+  variant={isSelected ? "filled" : "outlined"} // Sửa "contained" thành "filled"
+  onClick={() => {
+    if (!isDisabled && potentialVariant) {
+      handleVariantSelect(potentialVariant);
+    }
+  }}
+  disabled={isDisabled}
+  sx={{
+    borderColor: isSelected ? "primary.main" : "grey.400",
+    "&:hover": {
+      backgroundColor: isSelected ? "primary.dark" : "grey.200",
+      opacity: isDisabled ? 0.6 : 1,
+    },
+    opacity: isDisabled ? 0.5 : 1,
+    cursor: isDisabled ? "not-allowed" : "pointer",
+    transition: "all 0.2s ease-in-out",
+  }}
+/>
                         );
                       })}
                   </Box>
