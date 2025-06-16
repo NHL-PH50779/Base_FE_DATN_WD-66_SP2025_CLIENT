@@ -1,4 +1,4 @@
-import type { Category, Brand, NewsItem } from "../types/product.type";
+
 
 import axios from "axios";
 

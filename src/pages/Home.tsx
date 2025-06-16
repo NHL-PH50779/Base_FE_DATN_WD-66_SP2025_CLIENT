@@ -9,6 +9,18 @@ import {
   getNews,
 } from "../apis/product.api"; // Đảm bảo đường dẫn này đúng với file api.ts/js của bạn
 
+const categoryColors = [
+  '#8A2BE2', // Tím (Laptop AI)
+  '#FF6F00', // Cam (Gaming)
+  '#E0E0E0', // Xám nhạt (Văn Phòng)
+  '#FF69B4', // Hồng (Sinh viên)
+  '#40E0D0', // Xanh ngọc (Cảm ứng 2 in 1)
+  '#FFD700', // Vàng (Workstation)
+  '#9370DB', // Tím nhạt (Đồ họa)
+  '#F08080', // Đỏ san hô nhạt (Mỏng nhẹ)
+  // Thêm nhiều màu khác nếu có nhiều danh mục hơn
+];
+
 // Component hiển thị từng sản phẩm (giữ nguyên)
 const ProductCard = ({ product }: { product: DisplayProduct }) => {
   const formatPrice = (price: number) => {
@@ -41,7 +53,8 @@ const ProductCard = ({ product }: { product: DisplayProduct }) => {
         ) : (
           <p className="text-red-600 font-bold text-lg">{formatPrice(product.price)}</p>
         )}
-        <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-300">Xem chi tiết</button>
+        {/* Thay đổi màu nút "Xem chi tiết" */}
+        <button className="mt-2 bg-rose-500 text-white px-4 py-2 rounded hover:bg-rose-600 transition-colors duration-300">Xem chi tiết</button>
       </div>
     </Link>
   );
@@ -57,21 +70,17 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Tải sản phẩm
         const productsRes = await getAllLaptops();
-        setProducts(productsRes.data); // Giả định API trả về mảng DisplayProduct trực tiếp
+        setProducts(productsRes.data);
 
-        // Tải danh mục
         const categoriesRes = await getCategories();
-        setCategories(categoriesRes.data); // Giả định API trả về mảng Category trực tiếp
+        setCategories(categoriesRes.data);
 
-        // Tải thương hiệu
         const brandsRes = await getBrands();
-        setBrands(brandsRes.data); // Giả định API trả về mảng Brand trực tiếp
+        setBrands(brandsRes.data);
 
-        // Tải tin tức
         const newsRes = await getNews();
-        setNews(newsRes.data.sort((a: NewsItem, b: NewsItem) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3)); // Lấy 3 bài tin tức mới nhất và sắp xếp
+        setNews(newsRes.data.sort((a: NewsItem, b: NewsItem) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3));
 
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu từ API:", error);
@@ -82,23 +91,24 @@ const Home = () => {
     fetchData();
   }, []);
 
-  // Các phần lọc và sắp xếp dữ liệu vẫn giữ nguyên, hoạt động trên dữ liệu đã được tải về
   const featuredProducts = products.filter(p => (p.rating || 0) >= 4.5).slice(0, 5);
   const newArrivals = [...products].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
   const discountedProducts = products.filter(p => (p.discount || 0) > 0).sort((a, b) => (b.discount || 0) - (a.discount || 0)).slice(0, 5);
 
   const renderSectionTitle = (title: string) => (
-    <Typography variant="h5" className="text-center font-bold text-gray-800 mb-6 mt-8">
-      {title}
-    </Typography>
+    // Điều chỉnh màu nền và bo góc cho tiêu đề chính
+    <div className="bg-indigo-700 text-white py-4 text-center rounded-lg shadow-lg mb-8">
+      <Typography variant="h4" className="font-bold">{title}</Typography>
+    </div>
   );
 
   const renderProductSection = (title: string, productList: DisplayProduct[]) => (
-    <section className="mb-12">
+    <section className="mb-12"> {/* Tăng khoảng cách dưới của section */}
       {renderSectionTitle(title)}
       {productList.length === 0 ? (
         <Typography className="text-center text-gray-600">Không có sản phẩm nào để hiển thị.</Typography>
       ) : (
+        // Đảm bảo có gap giữa các sản phẩm
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {productList.map((product) => (
             <ProductCard key={product.variant_id} product={product} />
@@ -116,44 +126,50 @@ const Home = () => {
         </div>
       ) : (
         <>
-          {/* Danh mục sản phẩm */}
-          ---
-          {renderSectionTitle("Danh mục sản phẩm")}
+          {/* Banner thương hiệu ở đầu trang */}
           <section className="mb-12">
+            <div className="flex flex-wrap justify-center md:justify-around items-center gap-4 py-4 px-2 bg-white rounded-lg shadow-md">
+              {brands.map(brand => (
+                <Link to={`/brand/${brand.id}`} key={brand.id}>
+                  {brand.logo && (
+                    // Hiệu ứng xám và chuyển màu khi hover
+                    <img src={brand.logo} alt={brand.name} className="h-8 md:h-10 object-contain mx-2 filter grayscale hover:grayscale-0 transition-all duration-300" />
+                  )}
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {/* Tiêu đề "Chọn mua laptop theo nhu cầu" */}
+          <Typography variant="h5" className="text-center font-bold text-gray-800 mb-6 mt-8">
+            Chọn mua laptop theo nhu cầu
+          </Typography>
+          <section className="mb-12"> {/* Tăng khoảng cách dưới của section */}
+            {/* Grid cho danh mục, đảm bảo gap giữa các ô */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {categories.map((category) => (
+              {categories.map((category, index) => (
                 <Link to={`/category/${category.id}`} key={category.id} className="block">
-                  <Box className="bg-white p-4 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow duration-300">
+                  {/* Sử dụng style inline cho background-color để có nhiều màu khác nhau */}
+                  {/* Nếu API của bạn có trường category.background_color, hãy dùng nó thay thế */}
+                  <Box
+                    className="bg-white p-4 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow duration-300 relative overflow-hidden h-40 flex flex-col justify-end items-center pb-2"
+                    style={{ backgroundColor: categoryColors[index % categoryColors.length] }} // Gán màu từ mảng categoryColors
+                  >
                     {category.image && (
-                      <img src={category.image} alt={category.name} className="w-24 h-24 object-contain mx-auto mb-2 rounded-full" />
+                      // Đặt hình ảnh trên nền màu, điều chỉnh kích thước để phù hợp
+                      <img src={category.image} alt={category.name} className="w-2/3 h-auto object-contain absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/4 z-10" />
                     )}
-                    <Typography variant="subtitle1" className="font-semibold text-gray-800">{category.name}</Typography>
+                    <Typography variant="subtitle1" className="font-semibold text-white relative z-20">{category.name}</Typography>
+                    {/* Bạn có thể thêm một div màu nhạt hơn ở dưới hình ảnh để tạo hiệu ứng như ảnh mẫu */}
                   </Box>
                 </Link>
               ))}
             </div>
           </section>
 
-          {/* Thương hiệu nổi bật */}
-          ---
-          {renderSectionTitle("Thương hiệu nổi bật")}
-          <section className="mb-12">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {brands.map((brand) => (
-                <Link to={`/brand/${brand.id}`} key={brand.id} className="block">
-                  <Box className="bg-white p-4 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow duration-300">
-                    {brand.logo && (
-                      <img src={brand.logo} alt={brand.name} className="w-32 h-16 object-contain mx-auto mb-2" />
-                    )}
-                    <Typography variant="subtitle1" className="font-semibold text-gray-800">{brand.name}</Typography>
-                  </Box>
-                </Link>
-              ))}
-            </div>
-          </section>
-
-          {/* Sản phẩm nổi bật */}
-          {renderProductSection("Sản phẩm nổi bật", featuredProducts)}
+          {/* Các sản phẩm laptop nổi bật */}
+          {/* Tiêu đề "Các sản phẩm laptop nổi bật" giờ đã dùng renderSectionTitle để có màu tím/xanh tím */}
+          {renderProductSection("Các sản phẩm laptop nổi bật", featuredProducts)}
 
           {/* Sản phẩm mới nhất */}
           {renderProductSection("Sản phẩm mới nhất", newArrivals)}
@@ -162,9 +178,8 @@ const Home = () => {
           {renderProductSection("Sản phẩm giảm giá", discountedProducts)}
 
           {/* Tin tức/Blog mới nhất */}
-          ---
-          {renderSectionTitle("Tin tức/Blog mới nhất")}
-          <section className="mb-12">
+          <section className="mb-12"> {/* Tăng khoảng cách dưới của section */}
+            {renderSectionTitle("Tin tức/Blog mới nhất")}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {news.map((item) => (
                 <Link to={`/news/${item.id}`} key={item.id} className="block">
@@ -179,7 +194,8 @@ const Home = () => {
                         {new Date(item.created_at).toLocaleDateString('vi-VN')}
                       </Typography>
                     </div>
-                    <button className="m-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-300 self-start">Đọc thêm</button>
+                    {/* Thay đổi màu nút "Đọc thêm" */}
+                    <button className="m-4 bg-rose-500 text-white px-4 py-2 rounded hover:bg-rose-600 transition-colors duration-300 self-start">Đọc thêm</button>
                   </Box>
                 </Link>
               ))}

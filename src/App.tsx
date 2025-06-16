@@ -1,10 +1,9 @@
-import React from "react";
 import { useRoutes } from "react-router-dom";
 import ClientLayout from "./components/layouts/ClientLayout";
 import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
 import AdminLayout from "./components/layouts/AdminLayout";
-import Cart from "./pages/Cart";
+import Cart from "./pages/Cart/Cart";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PasswordReset from "./pages/PasswordReset";
@@ -14,8 +13,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact"; 
 
 import Orders from "./pages/Order";
-import ReturnRequestPage from "./pages/ReturnRequestPage"; // Thêm import cho ReturnRequestPage
-
+import ReturnRequestPage from "./pages/Cart/ReturnRequest"; 
+import Checkout from "./pages/Cart/Checkout";
 import ProductDetail from "./pages/ProductDetail"; // Thêm import cho ProductDetail
 
 
@@ -61,9 +60,9 @@ const routeConfig = [
         element: <Contact />,
          // Thêm tuyến đường cho Contact
       },
-      { path: "/orders", element: <Orders /> },
-     
+      { path: "/orders", element: <Orders /> },   
       {path: "/return-request", element: <ReturnRequestPage /> },
+      {oath: "/checkout", element: <Checkout /> },
 
     ],
   },
