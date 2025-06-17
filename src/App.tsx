@@ -11,11 +11,11 @@ import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import About from "./pages/About"; 
 import Contact from "./pages/Contact"; 
-
+import Confirm from "./pages/Cart/Corfirm"; 
 import Orders from "./pages/Order";
 import ReturnRequestPage from "./pages/Cart/ReturnRequest"; 
 import Checkout from "./pages/Cart/Checkout";
-import ProductDetail from "./pages/ProductDetail"; // Thêm import cho ProductDetail
+import ProductDetail from "./pages/ProductDetail"; 
 
 
 const routeConfig = [
@@ -62,7 +62,8 @@ const routeConfig = [
       },
       { path: "/orders", element: <Orders /> },   
       {path: "/return-request", element: <ReturnRequestPage /> },
-      {oath: "/checkout", element: <Checkout /> },
+      {path: "/checkout", element: <Checkout /> },
+      {path: "/confirm", element: <Confirm /> }, // Thêm tuyến đường cho Confirm
 
     ],
   },
