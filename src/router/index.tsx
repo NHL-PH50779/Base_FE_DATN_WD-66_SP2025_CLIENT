@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-export * from "./main.route";
-=======
-import { useRoutes } from 'react-router-dom';
-import routes from './main.route';
+import { useRoutes } from "react-router-dom";
+import routes from "./main.route";
 
 const AppRoutes = () => {
   const element = useRoutes(routes);
@@ -10,4 +7,3 @@ const AppRoutes = () => {
 };
 
 export default AppRoutes;
->>>>>>> b0aaf8e (gdadmin+mockdata)
