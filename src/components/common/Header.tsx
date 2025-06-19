@@ -15,7 +15,6 @@ const menus = [
   { label: "Danh mục", link: "/shop" },
   { label: "Về chúng tôi", link: "/about" },
   { label: "Liên hệ", link: "/contact" },
-
 ];
 
 const Header = () => {

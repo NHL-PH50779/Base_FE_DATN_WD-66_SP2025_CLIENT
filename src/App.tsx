@@ -1,23 +1,14 @@
+import React from "react";
 import { useRoutes } from "react-router-dom";
 import ClientLayout from "./components/layouts/ClientLayout";
 import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
 import AdminLayout from "./components/layouts/AdminLayout";
-import Cart from "./pages/Cart/Cart";
+import Cart from "./pages/Cart"; // Đảm bảo đường dẫn đúng
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PasswordReset from "./pages/PasswordReset";
 import Home from "./pages/Home";
-import Shop from "./pages/Shop";
-import About from "./pages/About"; 
-import Contact from "./pages/Contact"; 
-import Confirm from "./pages/Cart/Cofirm"; 
-import Orders from "./pages/Orders";
-import ReturnRequestPage from "./pages/Cart/ReturnRequest"; 
-import Checkout from "./pages/Cart/Checkout";
-import ProductDetail from "./pages/ProductDetaill"; 
-
-
 
 const routeConfig = [
   {
@@ -30,19 +21,15 @@ const routeConfig = [
       },
       {
         path: "/product/:id",
-        element: <ProductDetail />,
+        // element: <ProductDetail />,
       },
       {
         path: "about",
-        element: <About />, // Thêm tuyến đường cho About
+        // element: <About />,
       },
       {
         path: "/login",
         element: <Login />,
-      },
-      {
-        path: "/shop",
-        element: <Shop />,
       },
       {
         path: "/register",
@@ -58,14 +45,8 @@ const routeConfig = [
       },
       {
         path: "/contact",
-        element: <Contact />,
-         // Thêm tuyến đường cho Contact
+        // element: <Contact />,
       },
-      { path: "/orders", element: <Orders /> },   
-      {path: "/return-request", element: <ReturnRequestPage /> },
-      {path: "/checkout", element: <Checkout /> },
-      {path: "/confirm", element: <Confirm /> }, // Thêm tuyến đường cho Confirm
-
     ],
   },
   {
@@ -103,6 +84,8 @@ const routeConfig = [
 ];
 
 function App() {
+  const routes = useRoutes(routeConfig);
+  return <main>{routes}</main>;
   const routes = useRoutes(routeConfig);
   return <main>{routes}</main>;
 }

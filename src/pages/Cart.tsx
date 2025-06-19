@@ -1,108 +1,103 @@
-import React, { useState } from "react";
+import { CardMedia, Container, Stack, styled, Typography } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { useEffect, useState } from "react";
+// import { CartItem } from "src/types/Product";
+import { Link } from "react-router-dom";
+import type { CartItem } from "../types/product.type";
 
-// Giả lập dữ liệu giỏ hàng
-const cartData = [
-  {
-    id: 1,
-    variant: {
-      name: "Laptop Dell XPS 13 9310",
-      price: 29990000,
-      image:
-        "https://cdnv2.tgdd.vn/mwg-static/tgdd/Products/Images/44/323920/hp-15-fd0234tu-i5-9q969pa-170225-105831-192-600x600.jpg",
-    },
-    quantity: 1,
-  },
-];
+const labels = ["Image", "Product", "Price", "Quantity", "Subtotal", ""];
+function Cart() {
+  const [carts, setCarts] = useState<CartItem[]>([]);
 
-const Cart: React.FC = () => {
-  const [cartItems, setCartItems] = useState(cartData);
+  useEffect(() => {
+    const cartStorage = localStorage.getItem("carts") || "[]";
+    const carts = JSON.parse(cartStorage);
+    setCarts(carts);
+  }, []);
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    setCartItems(
-      cartItems.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+  const handleQuantityChange = (index: number, newQuantity: number) => {
+    // Update the quantity of the cart item at the given index
+    const updatedCarts = [...carts];
+    updatedCarts[index].quantity = newQuantity;
+    setCarts(updatedCarts);
   };
 
-  const removeItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+  const calculateSubtotal = (price: number, quantity: number) => {
+    // Calculate the subtotal based on the price and quantity
+    return price * quantity;
   };
 
-  const total = cartItems.reduce(
-    (sum, item) => sum + item.variant.price * item.quantity,
-    0
-  );
-
-  const handleCheckout = () => {
-    console.log("Tiến hành thanh toán:", cartItems);
+  const handleDeleteItem = (index: number) => {
+    // Remove the cart item at the given index
+    const updatedCarts = carts.filter((_, i) => i !== index);
+    setCarts(updatedCarts);
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">GIỎ HÀNG</h1>
-      {cartItems.length === 0 ? (
-        <p className="text-gray-600">Giỏ hàng của bạn đang trống.</p>
-      ) : (
-        <>
-          <div className="space-y-4">
-            {cartItems.map((item) => (
-              <div key={item.id} className="flex items-center border-b py-4">
-                <img
-                  src={item.variant.image}
-                  alt={item.variant.name}
-                  className="w-24 h-24 object-cover rounded mr-4"
-                />
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    {item.variant.name}
-                  </h3>
-                  <p className="text-gray-600">
-                    {item.variant.price.toLocaleString()}đ
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="border p-1 rounded hover:bg-gray-100"
-                  >
-                    -
-                  </button>
-                  <span>{item.quantity}</span>
-                  <button
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="border p-1 rounded hover:bg-gray-100"
-                  >
-                    +
-                  </button>
-                </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="ml-4 text-red-500 hover:text-red-700"
-                >
-                  Xóa
-                </button>
-              </div>
+    <>
+      {/* <Banner /> */}
+      {/* Tieu de */}
+      {/* <Typography> <Link to={"/"}>Go to back home</Link></Typography> */}
+      <Container>
+        <Wrapper>
+          <LabelWrapper
+            direction="row"
+            alignItems="center"
+            justifyContent="space-around"
+          >
+            {labels.map((label, index) => (
+              <Typography fontWeight={500} key={index}>
+                {label}
+              </Typography>
             ))}
-          </div>
-          <div className="mt-8 flex justify-end">
-            <div className="text-right">
-              <p className="text-xl font-semibold text-gray-800 mb-4">
-                Tổng cộng: {total.toLocaleString()}đ
-              </p>
-              <button
-                onClick={handleCheckout}
-                className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Thanh toán
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+          </LabelWrapper>
+          {/* Cart Item */}
+          {carts.map((item, index) => (
+            <Stack
+              key={index}
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <Stack direction="row" alignItems="center" gap={4}>
+                <CardMedia
+                  component="img"
+                  alt="Product Image"
+                  height="50"
+                  width="50"
+                  image={item.product.image}
+                  sx={{ objectFit: "contain" }}
+                />
+                <Typography fontWeight={500}>{item.product.title}</Typography>
+              </Stack>
+              <Typography fontWeight={500}>${item.product.price}</Typography>
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) =>
+                  handleQuantityChange(index, parseInt(e.target.value))
+                }
+              />
+              <Typography fontWeight={500}>
+                ${calculateSubtotal(item.product.price, item.quantity)}
+              </Typography>
+              <DeleteIcon onClick={() => handleDeleteItem(index)} />
+            </Stack>
+          ))}
+        </Wrapper>
+      </Container>
+    </>
   );
-};
+}
 
 export default Cart;
+
+const Wrapper = styled(Stack)({
+  paddingTop: 72,
+});
+
+const LabelWrapper = styled(Stack)(({ theme }) => ({
+  background: "#E3F2FD",
+  height: 55,
+}));

@@ -21,11 +21,11 @@ export default function PasswordReset() {
 
   const handleResetPassword = () => {
     if (!validateEmail(email)) {
-      setError("Vui lòng nhập địa chỉ email hợp lệ.");
+      setError("Please enter a valid email address.");
       return;
     }
     setError("");
-    alert(`Liên kết đặt lại mật khẩu đã được gửi đến ${email}`);
+    alert(`Password reset link sent to ${email}`);
   };
 
   return (
@@ -50,7 +50,7 @@ export default function PasswordReset() {
         }}
       >
         <Typography variant="h5" fontWeight="bold" align="center" gutterBottom>
-          Đặt lại mật khẩu
+          Password Reset
         </Typography>
         <Typography
           variant="body2"
@@ -58,12 +58,12 @@ export default function PasswordReset() {
           color="text.secondary"
           mb={3}
         >
-          Chúng tôi sẽ giúp bạn đặt lại mật khẩu
+          We will help you reset your password
         </Typography>
 
         <TextField
           fullWidth
-          label="Địa chỉ email"
+          label="Email Address"
           type="email"
           variant="outlined"
           value={email}
@@ -85,7 +85,7 @@ export default function PasswordReset() {
             },
           }}
         >
-          Gửi yêu cầu đặt lại mật khẩu
+          Reset Password
         </Button>
 
         <Divider sx={{ mb: 2 }} />
@@ -96,7 +96,7 @@ export default function PasswordReset() {
           color="text.secondary"
           mb={1}
         >
-          Bạn đã nhớ mật khẩu?
+          Remembered your password?
         </Typography>
         <Link
           href="/login"
@@ -105,7 +105,7 @@ export default function PasswordReset() {
           display="block"
           align="center"
         >
-          Quay lại đăng nhập
+          Back to Sign In
         </Link>
       </Paper>
     </Box>
