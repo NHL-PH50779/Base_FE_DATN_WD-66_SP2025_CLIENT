@@ -1,38 +1,32 @@
-export interface DisplayProduct {
-  id: number;
-  name: string;
-  thumbnail: string;
-  description: string;
-  brand_id: number;
-  category_id: number;
-  created_at: string;
-  variant_id: number;
-  sku: string;
-  price: number;
-  quantity: number;
-  variant_image?: string;
-  discount?: number;
-  rating?: number;
-  specs?: string;
-  code?: string;
-}
-
-export interface Category {
-  id: number;
-  name: string;
-  image?: string;
-}
-
-export interface Brand {
-  id: number;
-  name: string;
-  logo?: string;
-}
-
-export interface NewsItem {
-  id: number;
+export type Product = {
+  id: string;
   title: string;
-  content: string;
-  thumbnail?: string;
-  created_at: string;
-}
+  price: number;
+  image: string;
+  description: string;
+  category: string;
+  rating: {
+    rate: number;
+    count: number;
+  };
+  isShow: boolean;
+};
+
+export type Category = {
+  id: string;
+  name: string;
+  description: string;
+};
+
+export type ProductFormParams = {
+  title: string;
+  price: number;
+  images: string;
+  description: string;
+  category: string;
+  isShow: boolean;
+};
+export type CartItem = {
+  product: Product;
+  quantity: number;
+};
