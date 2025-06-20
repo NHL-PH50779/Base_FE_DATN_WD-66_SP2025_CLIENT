@@ -25,9 +25,13 @@ const ProductList: FC<ProductListProps> = ({ product }) => {
   const handleMouseLeave = () => {
     setIsHovered(false);
   };
+
   const handleAddToCart = () => {
     nav("/cart");
   };
+
+  const displayPrice = product.price ?? product.variants?.[0]?.price ?? 0;
+
   return (
     <Card
       sx={{
@@ -42,15 +46,17 @@ const ProductList: FC<ProductListProps> = ({ product }) => {
     >
       <CardMedia
         component="img"
-        alt="green iguana"
+        alt={product.name}
         height="140"
-        image={product.image}
+        image={product.thumbnail}
         sx={{
           objectFit: "contain",
           filter: isHovered ? "brightness(70%)" : "none",
           transition: "filter 0.5s",
         }}
       />
+
+      {/* Hover overlay */}
       <CardContent
         sx={{
           flex: "1 0 auto",
@@ -68,21 +74,29 @@ const ProductList: FC<ProductListProps> = ({ product }) => {
           transition: "opacity 0.5s",
         }}
       >
-        <Button size="small" variant="contained" onClick={handleAddToCart}>
-          Add to Cart
-        </Button>
+        {/* <Button size="small" variant="contained" onClick={handleAddToCart}>
+          Thêm vào giỏ hàng
+        </Button> */}
       </CardContent>
+
+      {/* Product info */}
       <CardContent sx={{ flex: "1 0 auto" }}>
-        <Typography gutterBottom variant="h5" component="div">
-          <Link to={`/product/${product.id}`}>{product.title}</Link>
+        <Typography gutterBottom variant="h6" component="div" noWrap>
+          <Link to={`/product/${product.id}`}>{product.name}</Link>
         </Typography>
-        <Typography gutterBottom variant="h6" component="div">
-          Price: ${product.price}
+
+        <Typography variant="body1" color="text.primary">
+          Giá:{" "}
+          {new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+          }).format(displayPrice)}
         </Typography>
       </CardContent>
+
       <CardActions sx={{ alignSelf: "flex-end" }}>
         <Button size="small">
-          <Link to={`/product/${product.id}`}>Learn More</Link>
+          <Link to={`/product/${product.id}`}>Xem chi tiết</Link>
         </Button>
       </CardActions>
     </Card>

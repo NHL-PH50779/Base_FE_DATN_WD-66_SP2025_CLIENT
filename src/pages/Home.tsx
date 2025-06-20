@@ -7,38 +7,42 @@ import ProductList from "../components/ProductList";
 const Home = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
   useEffect(() => {
     setLoading(true);
     const getProducts = async () => {
       try {
         const { data } = await instance.get("/products");
-        console.log(data);
-        setProducts(data);
+        console.log("API Response:", data);
+
+        // ✅ Sửa tại đây
+        setProducts(Array.isArray(data.data) ? data.data : []);
       } catch (error) {
-        console.log(error);
+        console.error("Fetch error:", error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
     };
+
     getProducts();
   }, []);
+
   return (
-    <>
-      <Container className="home">
-        {/* <Loading isShow={loading} /> */}
-        <Stack
-          direction={"row"}
-          flexWrap={"wrap"}
-          gap={2}
-          alignItems={"center"}
-          justifyContent={"center"}
-        >
-          {products.map((product, index) => (
-            <ProductList key={index} product={product} />
-          ))}
-        </Stack>
-      </Container>
-    </>
+    <Container className="home">
+      {/* <Loading isShow={loading} /> */}
+      <Stack
+        direction="row"
+        flexWrap="wrap"
+        gap={2}
+        alignItems="center"
+        justifyContent="center"
+      >
+        {products.map((product, index) => (
+          <ProductList key={index} product={product} />
+        ))}
+      </Stack>
+    </Container>
   );
 };
 

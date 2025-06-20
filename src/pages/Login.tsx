@@ -25,7 +25,7 @@ const Login = () => {
     setError(null);
 
     try {
-      const response = await fetch("https://localhost:3000/login", {
+      const response = await fetch("http://localhost:8000/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,10 +40,8 @@ const Login = () => {
       }
 
       const data = await response.json();
-      // Lưu token
       localStorage.setItem("token", data.token);
 
-      // Redirect ví dụ về trang dashboard
       navigate("/");
     } catch (err) {}
   };

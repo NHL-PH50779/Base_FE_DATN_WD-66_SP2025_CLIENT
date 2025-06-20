@@ -11,21 +11,18 @@ import { Link, useNavigate } from "react-router-dom";
 import GoogleIcon from "@mui/icons-material/Google";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import { useState } from "react";
+import instance from "../apis"; // ✅ dùng axios instance
 
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
 
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-    server: "",
-  });
+  const [errors, setErrors] = useState<any>({});
 
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
@@ -33,35 +30,25 @@ const Register = () => {
   };
 
   const validate = () => {
-    const newErrors = {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      server: "",
-    };
-
+    const newErrors: any = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = "Invalid email format";
-    }
+    if (!formData.name) newErrors.name = "Vui lòng nhập tên";
+    if (!formData.email) newErrors.email = "Vui lòng nhập email";
+    else if (!emailRegex.test(formData.email))
+      newErrors.email = "Email không hợp lệ";
 
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
+    if (!formData.password) newErrors.password = "Vui lòng nhập mật khẩu";
+    else if (formData.password.length < 8)
+      newErrors.password = "Tối thiểu 8 ký tự";
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
+    if (!formData.confirmPassword)
+      newErrors.confirmPassword = "Nhập lại mật khẩu";
+    else if (formData.confirmPassword !== formData.password)
+      newErrors.confirmPassword = "Mật khẩu không khớp";
 
     setErrors(newErrors);
-    return Object.values(newErrors).every((msg) => msg === "");
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,37 +56,30 @@ const Register = () => {
     if (!validate()) return;
 
     try {
-      const response = await fetch("http://localhost:3000/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+      const response = await instance.post("/register", {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        password_confirmation: formData.confirmPassword,
+        role: "client", // Có thể bỏ nếu không cần
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrors((prev) => ({
+      localStorage.setItem("token", response.data.token);
+      navigate("/login");
+    } catch (error: any) {
+      const data = error.response?.data;
+      if (data?.errors) {
+        const fieldErrors: any = {};
+        for (const key in data.errors) {
+          fieldErrors[key] = data.errors[key][0];
+        }
+        setErrors((prev: any) => ({ ...prev, ...fieldErrors }));
+      } else {
+        setErrors((prev: any) => ({
           ...prev,
-          server: data.message || "Register failed",
+          server: data?.message || "Đăng ký thất bại",
         }));
-        return;
       }
-
-      // Nếu server trả token:
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
-
-      // Redirect sau khi đăng ký thành công
-      navigate("/login"); // hoặc navigate("/") nếu muốn về trang chủ
-    } catch (err) {
-      setErrors((prev) => ({
-        ...prev,
-        server: "Network error. Please try again.",
-      }));
     }
   };
 
@@ -113,10 +93,10 @@ const Register = () => {
     >
       <Box width="100%" maxWidth={400} px={3}>
         <Typography variant="h4" fontWeight="bold" textAlign="center" mb={1}>
-          Tạo tài khoản mới
+          Tạo tài khoản
         </Typography>
         <Typography textAlign="center" mb={3}>
-          Bạn đã có tài khoản?{" "}
+          Đã có tài khoản?{" "}
           <MuiLink component={Link} to="/login" color="primary">
             Đăng nhập
           </MuiLink>
@@ -124,6 +104,14 @@ const Register = () => {
 
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
+            <TextField
+              label="Tên"
+              value={formData.name}
+              onChange={(e) => handleChange("name", e.target.value)}
+              fullWidth
+              error={!!errors.name}
+              helperText={errors.name}
+            />
             <TextField
               label="Email"
               value={formData.email}
@@ -142,7 +130,7 @@ const Register = () => {
               helperText={errors.password}
             />
             <TextField
-              label="Nhập lại mật khẩu"
+              label="Xác nhận mật khẩu"
               type="password"
               value={formData.confirmPassword}
               onChange={(e) => handleChange("confirmPassword", e.target.value)}
@@ -163,32 +151,19 @@ const Register = () => {
               fullWidth
               sx={{ bgcolor: "#1E1E4F", py: 1.5 }}
             >
-              Tạo tài khoản
+              Đăng ký
             </Button>
           </Stack>
         </form>
 
-        {/* <Typography
-          variant="body2"
-          textAlign="center"
-          color="text.secondary"
-          mt={2}
-        >
-          By creating account, you agree to our{" "}
-          <MuiLink href="#" color="primary">
-            Terms of Service
-          </MuiLink>
-        </Typography> */}
-
-        <Divider sx={{ my: 2 }}>Hoặc tạo tài khản cùng với:</Divider>
-
+        {/* <Divider sx={{ my: 2 }}>Hoặc tiếp tục với</Divider>
         <Button
           variant="outlined"
           fullWidth
           startIcon={<GoogleIcon />}
           sx={{ textTransform: "none" }}
         >
-          Tiếp tục với Google
+          Google
         </Button>
         <Button
           variant="outlined"
@@ -196,8 +171,8 @@ const Register = () => {
           startIcon={<FacebookIcon />}
           sx={{ textTransform: "none" }}
         >
-          Tiếp tục với Facebook
-        </Button>
+          Facebook
+        </Button> */}
       </Box>
     </Box>
   );

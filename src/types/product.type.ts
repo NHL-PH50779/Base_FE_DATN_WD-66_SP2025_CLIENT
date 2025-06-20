@@ -1,8 +1,23 @@
-export type Product = {
-  id: string;
-  title: string;
+export type AttributeValue = {
+  id: number;
+  value: string;
+  attribute_id: number;
+};
+
+export type ProductVariant = {
+  id: number;
+  Name: string;
+  sku: string;
   price: number;
-  image: string;
+  stock: number;
+  attributeValues: AttributeValue[];
+};
+
+export type Product = {
+  id: number;
+  name: string;
+  price: number;
+  thumbnail: string;
   description: string;
   category: string;
   rating: {
@@ -10,6 +25,7 @@ export type Product = {
     count: number;
   };
   isShow: boolean;
+  variants?: ProductVariant[];
 };
 
 export type Category = {
@@ -26,7 +42,11 @@ export type ProductFormParams = {
   category: string;
   isShow: boolean;
 };
+
 export type CartItem = {
+  id: number;
   product: Product;
+  productVariant?: ProductVariant | null;
   quantity: number;
+  price: number;
 };
