@@ -1,445 +1,445 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { Link, useParams } from "react-router-dom";
 import {
   Container,
   Typography,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  Button,
+  CircularProgress,
   Box,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
   Slider,
   Checkbox,
   FormControlLabel,
   FormGroup,
-  Select,
-  MenuItem,
-  Pagination,
-  Button,
+  Stack,
+  Pagination, // Import Pagination
 } from "@mui/material";
-import { Link } from "react-router-dom";
-import type { SelectChangeEvent } from "@mui/material/Select";
+// Import các kiểu dữ liệu đã định nghĩa
+import type { Product, ApiResponse, Category, Brand, Attribute, AttributeValue } from "../types/product.type";
+// Import instance Axios
+import instance from "../apis/index";
 
-// Import các hàm API từ shop.api.ts
-import {
-  getShopProducts,
-  getShopBrands,
-  getShopCategories,
-  getShopAttributes,
-} from "../apis/shop.api"; // Đảm bảo đường dẫn này đúng
+// Giá trị tối đa mặc định cho thanh trượt giá
+const MAX_PRICE_VALUE = 100000000; // Ví dụ: 100 triệu VNĐ
 
-// Import các kiểu dữ liệu từ product.type
-import type {
-  Brand,
-  Category,
-  Attribute,
-  AttributeValue,
-} from "../types/shop.type";
-import type {
-  
-  DisplayProduct,
-} from "../types/product.type";
+const CategoryPage = () => {
+  const { categoryId: paramCategoryId } = useParams<{ categoryId?: string }>();
 
-// ProductCard component (giữ nguyên)
-const ProductCard = ({ product }: { product: DisplayProduct }) => {
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
-  };
+  // States cho dữ liệu sản phẩm
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
 
-  const displayImage = product.variant_image || product.thumbnail;
-
-  return (
-    <Link to={`/product/${product.id}`} className="block w-full">
-      <Box className="bg-white p-4 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow duration-300 h-full flex flex-col justify-between">
-        <img
-          src={displayImage}
-          alt={product.name}
-          className="w-full h-32 object-contain mb-2 rounded"
-        />
-        <Typography variant="body2" className="text-gray-600 text-sm mb-1">
-          SKU: {product.sku || "N/A"}
-        </Typography>
-        <Typography
-          variant="h6"
-          className="font-semibold text-gray-800 line-clamp-2 min-h-[3rem]"
-        >
-          {product.name}
-        </Typography>
-        <p className="text-gray-600 text-sm mb-1 line-clamp-1">
-          {product.specs
-            .map((s) => `${s.attribute_name}: ${s.value}`)
-            .join(", ")}
-        </p>
-        <div className="flex justify-center items-center text-yellow-500 mb-2">
-          {"★".repeat(Math.floor(product.rating || 0))}
-          {"☆".repeat(5 - Math.floor(product.rating || 0))} (
-          {product.rating ? product.rating.toFixed(1) : "N/A"})
-        </div>
-        {product.discount && product.discount > 0 ? (
-          <>
-            <p className="text-gray-500 line-through text-sm">
-              {formatPrice(product.originalPrice)}
-            </p>
-            <p className="text-red-600 font-bold text-lg">
-              {formatPrice(product.price)}
-            </p>
-            <p className="text-green-600 text-sm font-semibold">
-              Giảm {product.discount}%
-            </p>
-          </>
-        ) : (
-          <p className="text-red-600 font-bold text-lg">
-            {formatPrice(product.price)}
-          </p>
-        )}
-        <Button
-          variant="contained"
-          className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Xem chi tiết
-        </Button>
-      </Box>
-    </Link>
-  );
-};
-
-const CATEGORY_PAGE_SIZE = 8; // Kích thước trang mặc định
-
-const CategoryPage: React.FC = () => {
-  const { categoryId } = useParams<{ categoryId?: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const [products, setProducts] = useState<DisplayProduct[]>([]);
-  const [totalProducts, setTotalProducts] = useState<number>(0); // Tổng số sản phẩm từ API
-  const [loading, setLoading] = useState<boolean>(true);
-  const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
-
-  // Dữ liệu bộ lọc (brands, attributes) cũng sẽ được tải từ API
-  const [brands, setBrands] = useState<Brand[]>([]);
+  // States cho dữ liệu lọc (dropdown, checkbox)
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [attributeValues, setAttributeValues] = useState<AttributeValue[]>([]);
 
-  // State của các bộ lọc/sắp xếp/phân trang
-  const [priceRange, setPriceRange] = useState<number[]>([0, 60000000]);
-  const [selectedBrands, setSelectedBrands] = useState<number[]>([]);
-  const [selectedAttributes, setSelectedAttributes] = useState<number[]>([]);
-  const [sortBy, setSortBy] = useState<string>("default");
+  // States cho các giá trị lọc được chọn
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | ''>(paramCategoryId ? Number(paramCategoryId) : '');
+  const [selectedBrandId, setSelectedBrandId] = useState<number | ''>('');
+  // Map: attributeId -> [attributeValueId1, attributeValueId2, ...]
+  const [selectedAttributeValues, setSelectedAttributeValues] = useState<Record<number, number[]>>({});
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, MAX_PRICE_VALUE]);
+  const [sortBy, setSortBy] = useState<string>('created_at'); // Mặc định sắp xếp theo ngày tạo
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // Mặc định sắp xếp giảm dần
+
+  // States cho phân trang
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalProducts, setTotalProducts] = useState<number>(0);
+  const productsPerPage = 12; // Số sản phẩm trên mỗi trang
 
-  // Constants for price range (can be fetched from API or defined globally)
-  const MIN_PRICE_GLOBAL = 0;
-  const MAX_PRICE_GLOBAL = 60000000;
-
-  // Hàm đọc bộ lọc từ URL (giữ nguyên)
-  const getFiltersFromUrl = useCallback(() => {
-    const params = new URLSearchParams(location.search);
-    const minPrice = parseInt(params.get("minPrice") || MIN_PRICE_GLOBAL.toString());
-    const maxPrice = parseInt(params.get("maxPrice") || MAX_PRICE_GLOBAL.toString());
-    const brands = params.get("brands")?.split(",").map(Number).filter(Boolean) || [];
-    const attributes = params.get("attributes")?.split(",").map(Number).filter(Boolean) || [];
-    const sort = params.get("sort") || "default";
-    const page = parseInt(params.get("page") || "1");
-
-    setPriceRange([minPrice, maxPrice]);
-    setSelectedBrands(brands);
-    setSelectedAttributes(attributes);
-    setSortBy(sort);
-    setCurrentPage(page);
-  }, [location.search, MIN_PRICE_GLOBAL, MAX_PRICE_GLOBAL]);
-
-  // Hàm cập nhật URL params (giữ nguyên)
-  const updateUrlParams = useCallback(() => {
-    const params = new URLSearchParams();
-    if (priceRange[0] !== MIN_PRICE_GLOBAL) params.set("minPrice", priceRange[0].toString());
-    if (priceRange[1] !== MAX_PRICE_GLOBAL) params.set("maxPrice", priceRange[1].toString());
-    if (selectedBrands.length > 0) params.set("brands", selectedBrands.join(","));
-    if (selectedAttributes.length > 0) params.set("attributes", selectedAttributes.join(","));
-    if (sortBy !== "default") params.set("sort", sortBy);
-    if (currentPage !== 1) params.set("page", currentPage.toString());
-
-    navigate({ search: params.toString() }, { replace: true });
-  }, [
-    priceRange,
-    selectedBrands,
-    selectedAttributes,
-    sortBy,
-    currentPage,
-    navigate,
-    MIN_PRICE_GLOBAL,
-    MAX_PRICE_GLOBAL,
-  ]);
-
-  // useEffect để tải dữ liệu ban đầu (brands, categories, attributes) một lần
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [brandsRes, categoriesRes, attributesRes] = await Promise.all([
-          getShopBrands(),
-          getShopCategories(),
-          getShopAttributes(),
-        ]);
-        setBrands(brandsRes);
-        setCategories(categoriesRes);
-        setAttributes(attributesRes.attributes);
-        setAttributeValues(attributesRes.attributeValues);
-      } catch (error) {
-        console.error("Lỗi khi tải dữ liệu ban đầu:", error);
-      }
-    };
-    fetchInitialData();
-  }, []); // Chỉ chạy một lần khi component mount
-
-  // useEffect để tải sản phẩm khi categoryId hoặc các bộ lọc thay đổi
-  useEffect(() => {
-    setLoading(true);
-    getFiltersFromUrl(); // Đảm bảo state được đồng bộ với URL trước khi gọi API
-
-    const fetchProducts = async () => {
-      try {
-        const params = {
-          categoryId: categoryId ? parseInt(categoryId) : undefined,
-          minPrice: priceRange[0],
-          maxPrice: priceRange[1],
-          brandIds: selectedBrands.length > 0 ? selectedBrands : undefined,
-          attributeValueIds: selectedAttributes.length > 0 ? selectedAttributes : undefined,
-          sortBy: sortBy,
-          page: currentPage,
-          pageSize: CATEGORY_PAGE_SIZE,
-        };
-        const response = await getShopProducts(params);
-        setProducts(response.products);
-        setTotalProducts(response.totalProducts);
-
-        // Cập nhật currentCategory dựa trên categoryId từ URL
-        if (categoryId) {
-          setCurrentCategory(
-            categories.find((c) => c.id === parseInt(categoryId)) || null
-          );
-        } else {
-          setCurrentCategory(null);
-        }
-      } catch (error) {
-        console.error("Lỗi khi tải sản phẩm:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Chỉ gọi fetchProducts khi `categories` đã được tải, đảm bảo `currentCategory` được tìm thấy đúng
-    if (categories.length > 0 || !categoryId) { // categories.length > 0 nếu đã tải xong, hoặc nếu không có categoryId thì không cần chờ
-        fetchProducts();
+  // Hàm để lấy danh mục
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data } = await instance.get<ApiResponse<Category[]>>("/categories");
+      setCategories(data.data);
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
     }
+  }, []);
 
-  }, [
-    categoryId,
-    priceRange,
-    selectedBrands,
-    selectedAttributes,
-    sortBy,
-    currentPage,
-    getFiltersFromUrl,
-    categories, // Thêm categories vào dependency array
-  ]);
+  // Hàm để lấy thương hiệu
+  const fetchBrands = useCallback(async () => {
+    try {
+      const { data } = await instance.get<ApiResponse<Brand[]>>("/brands");
+      setBrands(data.data);
+    } catch (error) {
+      console.error("Failed to fetch brands:", error);
+    }
+  }, []);
 
-  // useEffect để cập nhật URL mỗi khi các bộ lọc/sắp xếp/phân trang thay đổi
+  // Hàm để lấy thuộc tính và giá trị thuộc tính
+  const fetchAttributes = useCallback(async () => {
+    try {
+      const { data } = await instance.get<ApiResponse<Attribute[]>>("/attributes");
+      setAttributes(data.data);
+    } catch (error) {
+      console.error("Failed to fetch attributes:", error);
+    }
+  }, []);
+
+  // Hàm chính để lấy sản phẩm dựa trên các bộ lọc và phân trang
+  const fetchProducts = useCallback(async () => {
+    setLoadingProducts(true);
+    try {
+      const params: any = {
+        page: currentPage,
+        limit: productsPerPage,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+        min_price: priceRange[0],
+        max_price: priceRange[1],
+      };
+
+      if (selectedCategoryId !== '') {
+        params.category_id = selectedCategoryId;
+      }
+      if (selectedBrandId !== '') {
+        params.brand_id = selectedBrandId;
+      }
+
+      // Thêm các giá trị thuộc tính đã chọn vào params
+      const attributeValueIds: number[] = [];
+      for (const attrId in selectedAttributeValues) {
+        attributeValueIds.push(...selectedAttributeValues[attrId]);
+      }
+      if (attributeValueIds.length > 0) {
+        // API có thể cần định dạng 'attribute_values[]=1,2,3' hoặc 'attribute_values=1,2,3'
+        // Tôi sẽ dùng định dạng mảng để backend xử lý dễ hơn.
+        params.attribute_values = attributeValueIds.join(','); // Ví dụ: 1,3,5
+      }
+
+      const { data } = await instance.get<ApiResponse<Product[]>>("/products", { params });
+      setProducts(data.data);
+      setTotalProducts(data.meta?.total || 0);
+      setTotalPages(data.meta?.last_page || 1);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, [currentPage, productsPerPage, sortBy, sortOrder, selectedCategoryId, selectedBrandId, selectedAttributeValues, priceRange]);
+
+  // Effects để tải dữ liệu ban đầu (danh mục, thương hiệu, thuộc tính)
   useEffect(() => {
-    updateUrlParams();
-  }, [priceRange, selectedBrands, selectedAttributes, sortBy, currentPage, updateUrlParams]);
+    fetchCategories();
+    fetchBrands();
+    fetchAttributes();
+  }, [fetchCategories, fetchBrands, fetchAttributes]);
+
+  // Effect để tải sản phẩm khi các bộ lọc hoặc trang thay đổi
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Cập nhật selectedCategoryId khi paramCategoryId thay đổi (ví dụ: điều hướng từ trang chủ)
+  useEffect(() => {
+    if (paramCategoryId) {
+      setSelectedCategoryId(Number(paramCategoryId));
+    }
+  }, [paramCategoryId]);
 
 
-  const totalPages = Math.ceil(totalProducts / CATEGORY_PAGE_SIZE);
-
-  const handlePriceChange = (event: Event, newValue: number | number[]) => {
-    setPriceRange(newValue as number[]);
+  // Handlers cho việc thay đổi bộ lọc
+  const handleCategoryChange = (event: any) => {
+    setSelectedCategoryId(event.target.value as number | '');
     setCurrentPage(1); // Reset về trang 1 khi thay đổi bộ lọc
   };
 
-  const handleBrandChange = (brandId: number) => {
-    setSelectedBrands((prev) =>
-      prev.includes(brandId)
-        ? prev.filter((id) => id !== brandId)
-        : [...prev, brandId]
-    );
-    setCurrentPage(1); // Reset về trang 1 khi thay đổi bộ lọc
+  const handleBrandChange = (event: any) => {
+    setSelectedBrandId(event.target.value as number | '');
+    setCurrentPage(1);
   };
 
-  const handleAttributeChange = (attributeValueId: number) => {
-    setSelectedAttributes((prev) =>
-      prev.includes(attributeValueId)
-        ? prev.filter((id) => id !== attributeValueId)
-        : [...prev, attributeValueId]
-    );
-    setCurrentPage(1); // Reset về trang 1 khi thay đổi bộ lọc
+  const handleAttributeValueChange = (attributeId: number, attributeValueId: number) => {
+    setSelectedAttributeValues((prev) => {
+      const newValues = { ...prev };
+      if (!newValues[attributeId]) {
+        newValues[attributeId] = [];
+      }
+
+      if (newValues[attributeId].includes(attributeValueId)) {
+        newValues[attributeId] = newValues[attributeId].filter((id) => id !== attributeValueId);
+      } else {
+        newValues[attributeId].push(attributeValueId);
+      }
+      return newValues;
+    });
+    setCurrentPage(1);
   };
 
-  const handleSortChange = (event: SelectChangeEvent) => {
-    setSortBy(event.target.value);
-    setCurrentPage(1); // Reset về trang 1 khi thay đổi sắp xếp
+  const handlePriceRangeChange = (event: Event, newValue: number | number[]) => {
+    setPriceRange(newValue as [number, number]);
+  };
+
+  const handleSortChange = (event: any) => {
+    const [by, order] = (event.target.value as string).split('_');
+    setSortBy(by);
+    setSortOrder(order as 'asc' | 'desc');
+    setCurrentPage(1);
   };
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);
   };
 
-  // Dữ liệu cho các bộ lọc từ API
-  const uniqueBrands = brands;
-  const uniqueAttributes: {
-    attribute: Attribute;
-    values: AttributeValue[];
-  }[] = attributes.map((attr) => ({
-    attribute: attr,
-    values: attributeValues.filter((av) => av.attribute_id === attr.id),
-  }));
+  const resetFilters = () => {
+    setSelectedCategoryId(paramCategoryId ? Number(paramCategoryId) : '');
+    setSelectedBrandId('');
+    setSelectedAttributeValues({});
+    setPriceRange([0, MAX_PRICE_VALUE]);
+    setSortBy('created_at');
+    setSortOrder('desc');
+    setCurrentPage(1);
+  };
 
   return (
-    <Container className="category-page py-8">
-      {loading && products.length === 0 ? ( // Chỉ hiển thị "Đang tải" nếu chưa có sản phẩm nào
-        <div className="flex justify-center items-center h-64">
-          <Typography variant="h6" className="text-gray-700">
-            Đang tải sản phẩm...
-          </Typography>
-        </div>
-      ) : (
-        <>
-          <Typography variant="h4" className="text-center font-bold text-gray-800 mb-6">
-            {currentCategory ? currentCategory.name : "Tất cả sản phẩm"}
-          </Typography>
-          <Box className="flex gap-8">
-            {/* Sidebar bộ lọc */}
-            <Box className="w-1/4 pr-8 border-r border-gray-200">
-              <Typography variant="h5" className="font-bold mb-4">
-                BỘ LỌC
-              </Typography>
-              <div className="mb-6">
-                <Typography variant="h6" className="font-semibold mb-2">
-                  DANH MỤC HIỆN TẠI
-                </Typography>
-                <Typography className="text-gray-700 text-lg">
-                  {currentCategory ? currentCategory.name : "Tất cả"}
-                </Typography>
-                {categoryId && (
-                  <Link to="/shop" className="text-blue-600 hover:underline text-sm mt-1 block">
-                    Xem tất cả sản phẩm
-                  </Link>
-                )}
-              </div>
-              <div className="mb-6">
-                <Typography variant="h6" className="font-semibold mb-2">
-                  KHOẢNG GIÁ
-                </Typography>
-                <Slider
-                  value={priceRange}
-                  onChange={handlePriceChange}
-                  valueLabelDisplay="auto"
-                  min={MIN_PRICE_GLOBAL}
-                  max={MAX_PRICE_GLOBAL}
-                  step={1000000}
-                  marks={[
-                    { value: MIN_PRICE_GLOBAL, label: "0đ" },
-                    { value: 20000000, label: "20tr" },
-                    { value: 40000000, label: "40tr" },
-                    { value: MAX_PRICE_GLOBAL, label: "60tr+" },
-                  ]}
-                  disableSwap
-                />
-                <Box className="flex justify-between text-sm text-gray-600 mt-2">
-                  <span>{priceRange[0].toLocaleString()}đ</span>
-                  <span>{priceRange[1].toLocaleString()}đ</span>
-                </Box>
-              </div>
-              <div className="mb-6">
-                <Typography variant="h6" className="font-semibold mb-2">
-                  HÃNG SẢN XUẤT
-                </Typography>
-                <FormGroup>
-                  {uniqueBrands.map((brand) => (
-                    <FormControlLabel
-                      key={brand.id}
-                      control={
-                        <Checkbox
-                          checked={selectedBrands.includes(brand.id)}
-                          onChange={() => handleBrandChange(brand.id)}
-                          size="small"
-                        />
-                      }
-                      label={brand.name}
-                    />
-                  ))}
-                </FormGroup>
-              </div>
-              {uniqueAttributes.map((attrGroup) => (
-                <div key={attrGroup.attribute.id} className="mb-6">
-                  <Typography variant="h6" className="font-semibold mb-2">
-                    {attrGroup.attribute.name.toUpperCase()}
-                  </Typography>
-                  <FormGroup>
-                    {attrGroup.values.map((attrValue) => (
-                      <FormControlLabel
-                        key={attrValue.id}
-                        control={
-                          <Checkbox
-                            checked={selectedAttributes.includes(attrValue.id)}
-                            onChange={() => handleAttributeChange(attrValue.id)}
-                            size="small"
-                          />
-                        }
-                        label={attrValue.value}
-                      />
-                    ))}
-                  </FormGroup>
-                </div>
-              ))}
+    <Container sx={{ mt: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom align="center">
+        Danh mục sản phẩm
+      </Typography>
+
+      <Grid container spacing={3}>
+        {/* Phần Lọc và Sắp xếp */}
+        <Grid item xs={12} md={3}>
+          <Box sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: "8px", mb: 3 }}>
+            <Typography variant="h6" gutterBottom>Bộ lọc</Typography>
+
+            {/* Lọc theo Danh mục */}
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel id="category-select-label">Danh mục</InputLabel>
+              <Select
+                labelId="category-select-label"
+                id="category-select"
+                value={selectedCategoryId}
+                label="Danh mục"
+                onChange={handleCategoryChange}
+              >
+                <MenuItem value="">Tất cả danh mục</MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Lọc theo Thương hiệu */}
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel id="brand-select-label">Thương hiệu</InputLabel>
+              <Select
+                labelId="brand-select-label"
+                id="brand-select"
+                value={selectedBrandId}
+                label="Thương hiệu"
+                onChange={handleBrandChange}
+              >
+                <MenuItem value="">Tất cả thương hiệu</MenuItem>
+                {brands.map((brand) => (
+                  <MenuItem key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Lọc theo Giá */}
+            <Typography gutterBottom sx={{ mt: 3 }}>Khoảng giá:</Typography>
+            <Slider
+              value={priceRange}
+              onChange={handlePriceRangeChange}
+              valueLabelDisplay="auto"
+              min={0}
+              max={MAX_PRICE_VALUE}
+              step={100000} // Bước nhảy 100.000 VNĐ
+              marks={[
+                { value: 0, label: '0₫' },
+                { value: MAX_PRICE_VALUE / 2, label: `${(MAX_PRICE_VALUE / 2).toLocaleString("vi-VN")}₫` },
+                { value: MAX_PRICE_VALUE, label: `${MAX_PRICE_VALUE.toLocaleString("vi-VN")}₫` },
+              ]}
+              disableSwap // Ngăn kéo giá trị thấp hơn vượt quá giá trị cao hơn
+              sx={{ mb: 2 }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="body2">{priceRange[0].toLocaleString("vi-VN")}₫</Typography>
+                <Typography variant="body2">{priceRange[1].toLocaleString("vi-VN")}₫</Typography>
             </Box>
-            {/* Phần hiển thị sản phẩm */}
-            <Box className="w-3/4">
-              <Box className="flex justify-between items-center mb-6">
-                <Typography variant="h5" className="font-bold">
-                  SẢN PHẨM ({totalProducts} SẢN PHẨM)
-                </Typography>
-                <Box className="flex items-center space-x-2">
-                  <Typography variant="body1">Sắp xếp theo:</Typography>
-                  <Select
-                    value={sortBy}
-                    onChange={handleSortChange}
-                    displayEmpty
-                    inputProps={{ "aria-label": "Sắp xếp" }}
-                    size="small"
-                  >
-                    <MenuItem value="default">Mặc định</MenuItem>
-                    <MenuItem value="price-asc">Giá: Thấp đến Cao</MenuItem>
-                    <MenuItem value="price-desc">Giá: Cao đến Thấp</MenuItem>
-                    <MenuItem value="name-asc">Tên: A-Z</MenuItem>
-                    <MenuItem value="name-desc">Tên: Z-A</MenuItem>
-                    <MenuItem value="newest">Mới nhất</MenuItem>
-                    <MenuItem value="oldest">Cũ nhất</MenuItem>
-                  </Select>
-                </Box>
+
+
+            {/* Lọc theo Thuộc tính */}
+            {attributes.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" gutterBottom>Thuộc tính</Typography>
+                {attributes.map((attr) => (
+                  <Box key={attr.id} sx={{ mb: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{attr.name}</Typography>
+                    <FormGroup>
+                      {attr.values.map((val) => (
+                        <FormControlLabel
+                          key={val.id}
+                          control={
+                            <Checkbox
+                              checked={selectedAttributeValues[attr.id]?.includes(val.id) || false}
+                              onChange={() => handleAttributeValueChange(attr.id, val.id)}
+                            />
+                          }
+                          label={val.value}
+                        />
+                      ))}
+                    </FormGroup>
+                  </Box>
+                ))}
               </Box>
-              {products.length === 0 && !loading ? ( // Chỉ hiển thị nếu không có sản phẩm VÀ không còn tải
-                <div className="text-center text-gray-600 text-lg mt-8">
-                  Không tìm thấy sản phẩm nào phù hợp với lựa chọn của bạn.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            )}
+
+            {/* Nút Reset Bộ lọc */}
+            <Button
+              variant="outlined"
+              onClick={resetFilters}
+              fullWidth
+              sx={{ mt: 3 }}
+            >
+              Đặt lại bộ lọc
+            </Button>
+          </Box>
+        </Grid>
+
+        {/* Phần Hiển thị Sản phẩm */}
+        <Grid item xs={12} md={9}>
+          {/* Sắp xếp */}
+          <FormControl sx={{ minWidth: 200, mb: 3 }}>
+            <InputLabel id="sort-select-label">Sắp xếp theo</InputLabel>
+            <Select
+              labelId="sort-select-label"
+              id="sort-select"
+              value={`${sortBy}_${sortOrder}`}
+              label="Sắp xếp theo"
+              onChange={handleSortChange}
+            >
+              <MenuItem value="created_at_desc">Mới nhất</MenuItem>
+              <MenuItem value="created_at_asc">Cũ nhất</MenuItem>
+              <MenuItem value="price_asc">Giá: Thấp đến Cao</MenuItem>
+              <MenuItem value="price_desc">Giá: Cao đến Thấp</MenuItem>
+              <MenuItem value="name_asc">Tên: A-Z</MenuItem>
+              <MenuItem value="name_desc">Tên: Z-A</MenuItem>
+            </Select>
+          </FormControl>
+
+          {loadingProducts ? (
+            // Hiển thị vòng tròn tải nếu đang tải dữ liệu sản phẩm
+            <Box display="flex" justifyContent="center" alignItems="center" height="400px">
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {products.length > 0 ? (
+                <Grid container spacing={4}>
                   {products.map((product) => (
-                    <ProductCard key={product.variant_id} product={product} />
+                    <Grid item key={product.id} xs={12} sm={6} md={4}>
+                      <Card
+                        sx={{
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                          transition: "transform 0.2s ease-in-out",
+                          "&:hover": {
+                            transform: "translateY(-5px)",
+                          },
+                        }}
+                      >
+                        <Link to={`/products/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <CardMedia
+                            component="img"
+                            image={product.thumbnail || "https://placehold.co/400x300/CCCCCC/FFFFFF?text=No+Image"}
+                            alt={product.name}
+                            sx={{
+                              height: 200,
+                              objectFit: "contain",
+                              padding: "16px",
+                            }}
+                          />
+                          <CardContent sx={{ flexGrow: 1 }}>
+                            <Typography gutterBottom variant="h6" component="div" sx={{ minHeight: '60px' }}>
+                              {product.name}
+                            </Typography>
+                            {product.variants && product.variants.length > 0 && (
+                              <Typography variant="body1" color="text.secondary">
+                                Giá từ: {product.variants[0].price.toLocaleString("vi-VN")}₫
+                              </Typography>
+                            )}
+                            {product.brand && (
+                              <Typography variant="body2" color="text.secondary">
+                                Thương hiệu: {product.brand.name}
+                              </Typography>
+                            )}
+                            {product.category && (
+                              <Typography variant="body2" color="text.secondary">
+                                Danh mục: {product.category.name}
+                              </Typography>
+                            )}
+                          </CardContent>
+                        </Link>
+                        <Box sx={{ p: 2, pt: 0 }}>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            fullWidth
+                            component={Link}
+                            to={`/products/${product.id}`}
+                            sx={{
+                              borderRadius: "20px",
+                              mt: 1,
+                              background: "linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)",
+                              color: "white",
+                              "&:hover": {
+                                background: "linear-gradient(45deg, #FF8E53 30%, #FE6B8B 90%)",
+                              },
+                            }}
+                          >
+                            Xem chi tiết
+                          </Button>
+                        </Box>
+                      </Card>
+                    </Grid>
                   ))}
-                </div>
+                </Grid>
+              ) : (
+                <Typography variant="h6" textAlign="center" mt={4}>
+                  Không tìm thấy sản phẩm nào phù hợp với bộ lọc.
+                </Typography>
               )}
+
+              {/* Phân trang */}
               {totalPages > 1 && (
-                <Box className="flex justify-center mt-8">
+                <Stack spacing={2} sx={{ my: 4, alignItems: 'center' }}>
                   <Pagination
                     count={totalPages}
                     page={currentPage}
                     onChange={handlePageChange}
                     color="primary"
-                    siblingCount={1}
-                    boundaryCount={1}
+                    showFirstButton
+                    showLastButton
                   />
-                </Box>
+                  <Typography variant="body2">
+                    Hiển thị {products.length} trên {totalProducts} sản phẩm
+                  </Typography>
+                </Stack>
               )}
-            </Box>
-          </Box>
-        </>
-      )}
+            </>
+          )}
+        </Grid>
+      </Grid>
     </Container>
   );
 };
