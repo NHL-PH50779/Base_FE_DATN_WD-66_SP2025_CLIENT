@@ -123,9 +123,7 @@ const Checkout = () => {
       {/* Hero Section */}
       <Box
         sx={{
-          background: 'linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("/hero-bg.jpg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           py: 8,
           color: 'white',
           textAlign: 'center'
