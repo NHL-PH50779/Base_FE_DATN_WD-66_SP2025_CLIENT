@@ -1,180 +1,117 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
-  Box,
-  Button,
-  Divider,
-  Link as MuiLink,
-  Stack,
+  Container,
+  Card,
+  CardContent,
   TextField,
+  Button,
   Typography,
-} from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
-import GoogleIcon from "@mui/icons-material/Google";
-import FacebookIcon from "@mui/icons-material/Facebook";
-import { useState } from "react";
-import instance from "../apis"; // ✅ dùng axios instance
+  Box,
+  Alert
+} from '@mui/material';
+import { authService } from '../services/auth/auth.service';
 
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: ''
   });
-
-  const [errors, setErrors] = useState<any>({});
-
-  const handleChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-    setErrors({ ...errors, [field]: "", server: "" });
-  };
-
-  const validate = () => {
-    const newErrors: any = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!formData.name) newErrors.name = "Vui lòng nhập tên";
-    if (!formData.email) newErrors.email = "Vui lòng nhập email";
-    else if (!emailRegex.test(formData.email))
-      newErrors.email = "Email không hợp lệ";
-
-    if (!formData.password) newErrors.password = "Vui lòng nhập mật khẩu";
-    else if (formData.password.length < 8)
-      newErrors.password = "Tối thiểu 8 ký tự";
-
-    if (!formData.confirmPassword)
-      newErrors.confirmPassword = "Nhập lại mật khẩu";
-    else if (formData.confirmPassword !== formData.password)
-      newErrors.confirmPassword = "Mật khẩu không khớp";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    
+    if (formData.password !== formData.password_confirmation) {
+      setError('Mật khẩu xác nhận không khớp');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
 
     try {
-      const response = await instance.post("/register", {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        password_confirmation: formData.confirmPassword,
-        role: "client", // Có thể bỏ nếu không cần
-      });
-
-      localStorage.setItem("token", response.data.token);
-      navigate("/login");
+      await authService.register(formData);
+      alert('Đăng ký thành công! Vui lòng đăng nhập.');
+      navigate('/login');
     } catch (error: any) {
-      const data = error.response?.data;
-      if (data?.errors) {
-        const fieldErrors: any = {};
-        for (const key in data.errors) {
-          fieldErrors[key] = data.errors[key][0];
-        }
-        setErrors((prev: any) => ({ ...prev, ...fieldErrors }));
-      } else {
-        setErrors((prev: any) => ({
-          ...prev,
-          server: data?.message || "Đăng ký thất bại",
-        }));
-      }
+      console.error('Register error:', error);
+      setError(error.response?.data?.message || 'Đăng ký thất bại');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box
-      minHeight="100vh"
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      bgcolor="#f9f9f9"
-    >
-      <Box width="100%" maxWidth={400} px={3}>
-        <Typography variant="h4" fontWeight="bold" textAlign="center" mb={1}>
-          Tạo tài khoản
-        </Typography>
-        <Typography textAlign="center" mb={3}>
-          Đã có tài khoản?{" "}
-          <MuiLink component={Link} to="/login" color="primary">
-            Đăng nhập
-          </MuiLink>
-        </Typography>
+    <Container maxWidth="sm" sx={{ py: 8 }}>
+      <Card>
+        <CardContent sx={{ p: 4 }}>
+          <Typography variant="h4" align="center" sx={{ mb: 3 }}>
+            Đăng ký
+          </Typography>
 
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={2}>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+          <form onSubmit={handleSubmit}>
             <TextField
-              label="Tên"
+              fullWidth
+              label="Họ tên"
               value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              fullWidth
-              error={!!errors.name}
-              helperText={errors.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              sx={{ mb: 2 }}
+              required
             />
             <TextField
+              fullWidth
               label="Email"
+              type="email"
               value={formData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              fullWidth
-              error={!!errors.email}
-              helperText={errors.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              sx={{ mb: 2 }}
+              required
             />
             <TextField
+              fullWidth
               label="Mật khẩu"
               type="password"
               value={formData.password}
-              onChange={(e) => handleChange("password", e.target.value)}
-              fullWidth
-              error={!!errors.password}
-              helperText={errors.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              sx={{ mb: 2 }}
+              required
             />
             <TextField
+              fullWidth
               label="Xác nhận mật khẩu"
               type="password"
-              value={formData.confirmPassword}
-              onChange={(e) => handleChange("confirmPassword", e.target.value)}
-              fullWidth
-              error={!!errors.confirmPassword}
-              helperText={errors.confirmPassword}
+              value={formData.password_confirmation}
+              onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})}
+              sx={{ mb: 3 }}
+              required
             />
-
-            {errors.server && (
-              <Typography color="error" fontSize="0.875rem">
-                {errors.server}
-              </Typography>
-            )}
-
+            
             <Button
               type="submit"
               variant="contained"
               fullWidth
-              sx={{ bgcolor: "#1E1E4F", py: 1.5 }}
+              disabled={loading}
+              sx={{ mb: 2 }}
             >
-              Đăng ký
+              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
             </Button>
-          </Stack>
-        </form>
+          </form>
 
-        {/* <Divider sx={{ my: 2 }}>Hoặc tiếp tục với</Divider>
-        <Button
-          variant="outlined"
-          fullWidth
-          startIcon={<GoogleIcon />}
-          sx={{ textTransform: "none" }}
-        >
-          Google
-        </Button>
-        <Button
-          variant="outlined"
-          fullWidth
-          startIcon={<FacebookIcon />}
-          sx={{ textTransform: "none" }}
-        >
-          Facebook
-        </Button> */}
-      </Box>
-    </Box>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="body2">
+              Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    </Container>
   );
 };
 

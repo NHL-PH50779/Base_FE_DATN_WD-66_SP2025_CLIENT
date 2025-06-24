@@ -11,33 +11,38 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 }
 
 const axiosInstance = axios.create({
-  baseURL: process.env.PUBLIC_API_URL,
+  baseURL: "http://127.0.0.1:8000/api",
   timeout: 20000,
   headers: {
     "Content-Type": "application/json",
+    "Accept": "application/json",
   },
 });
 
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
-    // log error ra để kiểm tra rồi sử lý
-
+    console.error("API Error:", error.response?.data || error.message);
+    
+    // Nếu lỗi 401, xóa token và redirect về login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    // const token = getCommonStateFromLocalStorage()?.token;
-    // if (token && config.headers) {
-    //   config.headers.set(
-    //     "Authorization",
-    //     (config as CustomAxiosRequestConfig).isAuthApi
-    //       ? `Bearer ${token}`
-    //       : token
-    //   );
-    // }
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error: AxiosError) => {

@@ -20,13 +20,14 @@ import {
   Visibility,
   VisibilityOff,
   Login as LoginIcon,
-  PersonAdd
+  PersonAdd,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { authService } from '../services/auth/auth.service';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 
-const Login = () => {
+const ClientLogin = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -49,14 +50,22 @@ const Login = () => {
     setError('');
 
     try {
-      await authService.login(formData);
-      navigate('/');
+      const response = await authService.login(formData);
+      if (response.user.role === 'admin') {
+        window.location.href = 'http://localhost:5173/admin';
+      } else {
+        navigate('/home');
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.response?.data?.message || 'Lỗi đăng nhập');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAdminLogin = () => {
+    window.location.href = 'http://localhost:5173/admin/login';
   };
 
   return (
@@ -232,6 +241,7 @@ const Login = () => {
                       borderRadius: 3,
                       borderColor: '#2196F3',
                       color: '#2196F3',
+                      mb: 2,
                       '&:hover': {
                         borderColor: '#1976D2',
                         backgroundColor: '#f3f8ff'
@@ -239,6 +249,34 @@ const Login = () => {
                     }}
                   >
                     Tạo tài khoản mới
+                  </Button>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.7 }}
+                >
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    size="large"
+                    onClick={handleAdminLogin}
+                    startIcon={<AdminPanelSettings />}
+                    sx={{
+                      py: 1.5,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      borderRadius: 3,
+                      borderColor: '#ff9800',
+                      color: '#ff9800',
+                      '&:hover': {
+                        borderColor: '#f57c00',
+                        backgroundColor: '#fff8e1'
+                      }
+                    }}
+                  >
+                    Đăng nhập quản trị
                   </Button>
                 </motion.div>
 
@@ -267,4 +305,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default ClientLogin;

@@ -16,16 +16,23 @@ export type ProductVariant = {
 export type Product = {
   id: number;
   name: string;
-  price: number;
-  thumbnail: string;
-  description: string;
-  category: string;
-  rating: {
-    rate: number;
-    count: number;
-  };
-  isShow: boolean;
+  price?: number;
+  thumbnail?: string;
+  description?: string;
+  category_id: number;
+  brand_id: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
   variants?: ProductVariant[];
+  brand?: {
+    id: number;
+    name: string;
+  };
+  category?: {
+    id: number;
+    name: string;
+  };
 };
 
 export type Category = {
