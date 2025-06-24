@@ -8,7 +8,7 @@ import { LoadingProvider } from "./contexts/loading";
 import { createTheme } from "@mui/material/styles";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 
-axios.defaults.baseURL = "http://localhost:3000";
+axios.defaults.baseURL = "http://127.0.0.1:8000/api";
 
 const theme = createTheme({
   typography: {
