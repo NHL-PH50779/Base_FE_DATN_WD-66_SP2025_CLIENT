@@ -35,6 +35,7 @@ import {
   ArrowBack,
   CheckCircle
 } from '@mui/icons-material';
+import { Checkbox } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cartService } from '../services/cart.service';
 import { orderService } from '../services/order.service';
@@ -70,6 +71,7 @@ const Cart = () => {
   const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set());
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, itemId: 0, itemName: '' });
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -96,7 +98,14 @@ const Cart = () => {
   };
 
   const updateQuantity = async (itemId: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
+    if (newQuantity < 1) {
+      // Confirm delete when quantity goes to 0
+      const item = cart.items.find(i => i.id === itemId);
+      if (item && window.confirm(`Bạn có muốn xóa "${item.product.name}" khỏi giỏ hàng?`)) {
+        await removeItem(itemId);
+      }
+      return;
+    }
     
     setUpdatingItems(prev => new Set(prev).add(itemId));
     try {
@@ -115,24 +124,52 @@ const Cart = () => {
     }
   };
 
-  const handleDeleteClick = (item: CartItem) => {
-    setDeleteDialog({
-      open: true,
-      itemId: item.id,
-      itemName: item.product.name
-    });
-  };
-
-  const confirmDelete = async () => {
+  const removeItem = async (itemId: number) => {
     try {
-      await cartService.removeFromCart(deleteDialog.itemId);
+      await cartService.removeFromCart(itemId);
       await fetchCart();
-      showSnackbar('Đã xóa sản phẩm khỏi giỏ hàng', 'success');
+      // Remove from selected items if it was selected
+      setSelectedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+      showSnackbar('Đã xóa sản phẩm', 'success');
     } catch (error) {
       console.error('Error removing item:', error);
       showSnackbar('Lỗi khi xóa sản phẩm', 'error');
-    } finally {
-      setDeleteDialog({ open: false, itemId: 0, itemName: '' });
+    }
+  };
+
+  const toggleSelectItem = (itemId: number) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedItems.size === cart.items.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(cart.items.map(item => item.id)));
+    }
+  };
+
+  const getSelectedTotal = () => {
+    return cart.items
+      .filter(item => selectedItems.has(item.id))
+      .reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const handleDeleteClick = (item: CartItem) => {
+    if (window.confirm(`Bạn có muốn xóa "${item.product.name}" khỏi giỏ hàng?`)) {
+      removeItem(item.id);
     }
   };
 
@@ -277,6 +314,24 @@ const Cart = () => {
               <Box>
                 <Card sx={{ backgroundColor: 'white', borderRadius: 3, overflow: 'hidden' }}>
                   <CardContent sx={{ p: 0 }}>
+                    {/* Select All Header */}
+                    <Box sx={{ p: 3, borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Checkbox
+                          checked={cart.items.length > 0 && selectedItems.size === cart.items.length}
+                          indeterminate={selectedItems.size > 0 && selectedItems.size < cart.items.length}
+                          onChange={toggleSelectAll}
+                        />
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          Chọn tất cả ({cart.items.length} sản phẩm)
+                        </Typography>
+                        {selectedItems.size > 0 && (
+                          <Typography variant="body2" color="primary">
+                            Đã chọn {selectedItems.size} sản phẩm
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
                     <AnimatePresence>
                       {cart.items.map((item, index) => (
                         <motion.div
@@ -297,6 +352,12 @@ const Cart = () => {
                             }}
                           >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              {/* Checkbox */}
+                              <Checkbox
+                                checked={selectedItems.has(item.id)}
+                                onChange={() => toggleSelectItem(item.id)}
+                              />
+                              
                               {/* Product Image */}
                               <motion.div
                                 whileHover={{ scale: 1.05 }}
@@ -318,7 +379,16 @@ const Cart = () => {
 
                               {/* Product Info */}
                               <Box sx={{ flex: 1 }}>
-                                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                                <Typography 
+                                  variant="h6" 
+                                  sx={{ 
+                                    fontWeight: 600, 
+                                    mb: 1,
+                                    cursor: 'pointer',
+                                    '&:hover': { color: 'primary.main' }
+                                  }}
+                                  onClick={() => navigate(`/product/${item.product.id}`)}
+                                >
                                   {item.product.name}
                                 </Typography>
                                 {item.product_variant && (
@@ -421,39 +491,36 @@ const Cart = () => {
                       Tóm tắt đơn hàng
                     </Typography>
                     
-                    <Stack spacing={2} sx={{ mb: 3 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography>Tạm tính:</Typography>
-                        <Typography fontWeight={600}>{formatPrice(cart.total)}</Typography>
-                      </Box>
-                      
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <LocalShipping fontSize="small" color="warning" />
-                          <Typography>Phí vận chuyển:</Typography>
+                    {selectedItems.size > 0 ? (
+                      <>
+                        <Stack spacing={2} sx={{ mb: 3 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography>Tạm tính ({selectedItems.size} sản phẩm):</Typography>
+                            <Typography fontWeight={600}>{formatPrice(getSelectedTotal())}</Typography>
+                          </Box>
+                        </Stack>
+                        
+                        <Divider sx={{ my: 2 }} />
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                          <Typography variant="h6" fontWeight={700}>
+                            Tổng cộng:
+                          </Typography>
+                          <Typography variant="h5" color="primary" fontWeight={700}>
+                            {formatPrice(getSelectedTotal())}
+                          </Typography>
                         </Box>
-                        <Typography fontWeight={600}>{formatPrice(30000)}</Typography>
+                      </>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography variant="h6" color="text.secondary">
+                          0₫
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          Vui lòng chọn sản phẩm để xem tổng tiền
+                        </Typography>
                       </Box>
-                      
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Security fontSize="small" color="primary" />
-                          <Typography>Bảo hiểm:</Typography>
-                        </Box>
-                        <Typography color="text.secondary">Tùy chọn</Typography>
-                      </Box>
-                    </Stack>
-                    
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                      <Typography variant="h6" fontWeight={700}>
-                        Tổng cộng:
-                      </Typography>
-                      <Typography variant="h5" color="primary" fontWeight={700}>
-                        {formatPrice(cart.total + 30000)}
-                      </Typography>
-                    </Box>
+                    )}
                     
                     <Stack spacing={2}>
                       <motion.div
@@ -465,17 +532,34 @@ const Cart = () => {
                           variant="contained"
                           size="large"
                           startIcon={<ShoppingCartCheckout />}
-                          onClick={() => navigate('/checkout')}
+                          onClick={() => {
+                            if (selectedItems.size === 0) {
+                              alert('Vui lòng chọn sản phẩm để thanh toán!');
+                              return;
+                            }
+                            const selectedCartItems = cart.items.filter(item => selectedItems.has(item.id));
+                            navigate('/checkout', { 
+                              state: { 
+                                selectedItems: selectedCartItems,
+                                total: getSelectedTotal()
+                              }
+                            });
+                          }}
+                          disabled={selectedItems.size === 0}
                           sx={{
                             py: 1.5,
                             fontSize: '1.1rem',
                             fontWeight: 600,
                             borderRadius: 2,
-                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
+                            background: selectedItems.size > 0 
+                              ? 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)'
+                              : '#ccc',
+                            boxShadow: selectedItems.size > 0 
+                              ? '0 3px 5px 2px rgba(33, 203, 243, .3)'
+                              : 'none'
                           }}
                         >
-                          Thanh toán ngay
+                          Thanh toán ngay ({selectedItems.size})
                         </Button>
                       </motion.div>
                       
@@ -498,28 +582,7 @@ const Cart = () => {
         </motion.div>
       </Container>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialog.open}
-        onClose={() => setDeleteDialog({ open: false, itemId: 0, itemName: '' })}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Xác nhận xóa sản phẩm</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Bạn có chắc chắn muốn xóa "{deleteDialog.itemName}" khỏi giỏ hàng?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog({ open: false, itemId: 0, itemName: '' })}>
-            Hủy
-          </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            Xóa
-          </Button>
-        </DialogActions>
-      </Dialog>
+
 
       {/* Snackbar */}
       <Snackbar

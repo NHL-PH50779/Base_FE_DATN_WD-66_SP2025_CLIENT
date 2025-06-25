@@ -51,7 +51,7 @@ const ClientLogin = () => {
 
     try {
       const response = await authService.login(formData);
-      if (response.user.role === 'admin') {
+      if (response.user.role === 'admin' || response.user.role === 'super_admin') {
         window.location.href = 'http://localhost:5173/admin';
       } else {
         navigate('/home');

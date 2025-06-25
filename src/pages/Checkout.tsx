@@ -27,6 +27,8 @@ import {
   Stack
 } from '@mui/material';
 import { cartService } from '../services/cart.service';
+import { orderService } from '../services/order.service';
+import { useNavigate } from 'react-router-dom';
 import {
   LocationOn,
   Person,
@@ -47,6 +49,7 @@ interface CartItem {
 }
 
 const Checkout = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
@@ -60,7 +63,7 @@ const Checkout = () => {
     address: '',
     note: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const paymentMethod = 'cod'; // Cố định COD
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Fetch cart data
@@ -101,21 +104,52 @@ const Checkout = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const shippingFee = 30000;
+  const shippingFee = 30000; // Phí vận chuyển cố định 30k
   const discount = 0;
   
   const calculateTotal = () => {
     return calculateSubtotal() + shippingFee - discount;
   };
 
-  const handleSubmitOrder = () => {
-    console.log('Order submitted:', {
-      customerInfo,
-      shippingInfo,
-      paymentMethod,
-      items: cartItems,
-      total: calculateTotal()
-    });
+  const handleSubmitOrder = async () => {
+    try {
+      // Validate required fields
+      if (!customerInfo.name || !customerInfo.phone || !shippingInfo.province || !shippingInfo.district || !shippingInfo.ward || !shippingInfo.address) {
+        alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+        return;
+      }
+
+      const orderData = {
+        // Backend expects these field names based on OrderController
+        name: customerInfo.name,
+        phone: customerInfo.phone,
+        email: customerInfo.email,
+        address: `${shippingInfo.address}, ${shippingInfo.ward}, ${shippingInfo.district}, ${shippingInfo.province}`,
+        note: shippingInfo.note,
+        payment_method: 'cod',
+        total: calculateTotal()
+      };
+      
+      console.log('Order submitted:', orderData);
+      
+      // Gọi API tạo đơn hàng
+      const response = await orderService.createOrder(orderData);
+      console.log('Order response:', response);
+      
+      alert('Đặt hàng thành công! Bạn sẽ thanh toán khi nhận hàng.');
+      
+      // Redirect đến trang đơn hàng
+      navigate('/orders');
+      
+    } catch (error: any) {
+      console.error('Order error:', error);
+      if (error.response?.status === 401) {
+        alert('Vui lòng đăng nhập để đặt hàng!');
+        navigate('/login');
+      } else {
+        alert('Có lỗi xảy ra khi đặt hàng: ' + (error.response?.data?.message || error.message));
+      }
+    }
   };
 
   return (
@@ -152,20 +186,18 @@ const Checkout = () => {
                   Thông tin cá nhân
                 </Typography>
                 
-                <Grid container spacing={3}>
+                <Stack spacing={3}>
                   {/* Personal Info */}
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Họ tên đầy đủ *"
-                      value={customerInfo.name}
-                      onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-                      variant="outlined"
-                      required
-                    />
-                  </Grid>
+                  <TextField
+                    fullWidth
+                    label="Họ tên đầy đủ *"
+                    value={customerInfo.name}
+                    onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
+                    variant="outlined"
+                    required
+                  />
                   
-                  <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
                     <TextField
                       fullWidth
                       label="Số điện thoại *"
@@ -175,9 +207,6 @@ const Checkout = () => {
                       required
                       helperText="Để liên hệ giao hàng"
                     />
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
                       label="Email"
@@ -187,72 +216,60 @@ const Checkout = () => {
                       variant="outlined"
                       helperText="Gửi hóa đơn, xác nhận đơn hàng"
                     />
-                  </Grid>
+                  </Box>
 
-
-                  
                   {/* Address Info */}
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Tỉnh/Thành phố *"
-                      value={shippingInfo.province}
-                      onChange={(e) => setShippingInfo({...shippingInfo, province: e.target.value})}
-                      variant="outlined"
-                      placeholder="Nhập tỉnh/thành phố"
-                      required
-                    />
-                  </Grid>
+                  <TextField
+                    fullWidth
+                    label="Tỉnh/Thành phố *"
+                    value={shippingInfo.province}
+                    onChange={(e) => setShippingInfo({...shippingInfo, province: e.target.value})}
+                    variant="outlined"
+                    placeholder="Nhập tỉnh/thành phố"
+                    required
+                  />
                   
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Quận/Huyện *"
-                      value={shippingInfo.district}
-                      onChange={(e) => setShippingInfo({...shippingInfo, district: e.target.value})}
-                      variant="outlined"
-                      placeholder="Nhập quận/huyện"
-                      required
-                    />
-                  </Grid>
+                  <TextField
+                    fullWidth
+                    label="Quận/Huyện *"
+                    value={shippingInfo.district}
+                    onChange={(e) => setShippingInfo({...shippingInfo, district: e.target.value})}
+                    variant="outlined"
+                    placeholder="Nhập quận/huyện"
+                    required
+                  />
                   
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Phường/Xã *"
-                      value={shippingInfo.ward}
-                      onChange={(e) => setShippingInfo({...shippingInfo, ward: e.target.value})}
-                      variant="outlined"
-                      placeholder="Nhập phường/xã"
-                      required
-                    />
-                  </Grid>
+                  <TextField
+                    fullWidth
+                    label="Phường/Xã *"
+                    value={shippingInfo.ward}
+                    onChange={(e) => setShippingInfo({...shippingInfo, ward: e.target.value})}
+                    variant="outlined"
+                    placeholder="Nhập phường/xã"
+                    required
+                  />
                   
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Địa chỉ chi tiết *"
-                      value={shippingInfo.address}
-                      onChange={(e) => setShippingInfo({...shippingInfo, address: e.target.value})}
-                      variant="outlined"
-                      placeholder="Số nhà, tên đường, tòa nhà..."
-                      required
-                    />
-                  </Grid>
+                  <TextField
+                    fullWidth
+                    label="Địa chỉ chi tiết *"
+                    value={shippingInfo.address}
+                    onChange={(e) => setShippingInfo({...shippingInfo, address: e.target.value})}
+                    variant="outlined"
+                    placeholder="Số nhà, tên đường, tòa nhà..."
+                    required
+                  />
                   
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Ghi chú giao hàng (tùy chọn)"
-                      value={shippingInfo.note}
-                      onChange={(e) => setShippingInfo({...shippingInfo, note: e.target.value})}
-                      variant="outlined"
-                      multiline
-                      rows={2}
-                      placeholder="Ví dụ: gọi trước khi giao, giao sau 18h..."
-                    />
-                  </Grid>
-                </Grid>
+                  <TextField
+                    fullWidth
+                    label="Ghi chú giao hàng (tùy chọn)"
+                    value={shippingInfo.note}
+                    onChange={(e) => setShippingInfo({...shippingInfo, note: e.target.value})}
+                    variant="outlined"
+                    multiline
+                    rows={2}
+                    placeholder="Ví dụ: gọi trước khi giao, giao sau 18h..."
+                  />
+                </Stack>
               </CardContent>
             </Card>
           </Box>
@@ -306,49 +323,30 @@ const Checkout = () => {
                     Phương thức thanh toán
                   </Typography>
                   
-                  <FormControl component="fieldset" sx={{ width: '100%', mb: 3 }}>
-                    <RadioGroup
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    >
-                      <FormControlLabel
-                        value="cod"
-                        control={<Radio />}
-                        label={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <LocalShipping sx={{ color: '#4CAF50' }} />
-                            <Box>
-                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                Thanh toán khi nhận hàng (COD)
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Thanh toán bằng tiền mặt khi nhận hàng
-                              </Typography>
-                            </Box>
-                          </Box>
-                        }
-                        sx={{ mb: 2, alignItems: 'flex-start' }}
-                      />
-                      <FormControlLabel
-                        value="vnpay"
-                        control={<Radio />}
-                        label={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CreditCard sx={{ color: '#2196F3' }} />
-                            <Box>
-                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                VNPay
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Thanh toán trực tuyến qua VNPay
-                              </Typography>
-                            </Box>
-                          </Box>
-                        }
-                        sx={{ mb: 3, alignItems: 'flex-start' }}
-                      />
-                    </RadioGroup>
-                  </FormControl>
+                  <Box sx={{ mb: 3 }}>
+                    <Box sx={{ 
+                      p: 3, 
+                      border: '2px solid #4CAF50', 
+                      borderRadius: 2, 
+                      backgroundColor: '#f1f8e9',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2 
+                    }}>
+                      <LocalShipping sx={{ color: '#4CAF50', fontSize: 40 }} />
+                      <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: '#2e7d32' }}>
+                          Thanh toán khi nhận hàng (COD)
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Bạn sẽ thanh toán bằng tiền mặt khi shipper giao hàng đến địa chỉ của bạn
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4CAF50', fontWeight: 500, mt: 1 }}>
+                          ✓ An toàn - Kiểm tra hàng trước khi thanh toán
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
                   
                   <FormControlLabel
                     control={
@@ -367,25 +365,26 @@ const Checkout = () => {
                     size="large"
                     onClick={handleSubmitOrder}
                     disabled={!acceptTerms}
+                    startIcon={<LocalShipping />}
                     sx={{
                       py: 2,
                       fontSize: '1.1rem',
                       fontWeight: 600,
-                      backgroundColor: '#82ca9d',
+                      backgroundColor: '#4CAF50',
                       borderRadius: 2,
                       textTransform: 'none',
-                      boxShadow: '0 4px 15px rgba(130, 202, 157, 0.3)',
+                      boxShadow: '0 4px 15px rgba(76, 175, 80, 0.3)',
                       '&:hover': {
-                        backgroundColor: '#6bb77b',
+                        backgroundColor: '#45a049',
                         transform: 'translateY(-2px)',
-                        boxShadow: '0 6px 20px rgba(130, 202, 157, 0.4)'
+                        boxShadow: '0 6px 20px rgba(76, 175, 80, 0.4)'
                       },
                       '&:disabled': {
                         backgroundColor: '#ccc'
                       }
                     }}
                   >
-                    Đặt hàng ngay
+                    Đặt hàng - Thanh toán khi nhận
                   </Button>
                 </CardContent>
               </Card>

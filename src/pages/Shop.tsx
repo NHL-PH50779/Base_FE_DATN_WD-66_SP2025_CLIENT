@@ -199,8 +199,8 @@ const Shop = () => {
               label="Sắp xếp"
             >
               <MenuItem value="name">Tên A-Z</MenuItem>
-              <MenuItem value="price_asc">Giá tăng</MenuItem>
-              <MenuItem value="price_desc">Giá giảm</MenuItem>
+              <MenuItem value="price_asc">Giá từ thấp lên cao</MenuItem>
+              <MenuItem value="price_desc">Giá từ cao xuống thấp</MenuItem>
             </Select>
           </FormControl>
 

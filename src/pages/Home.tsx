@@ -106,56 +106,107 @@ const Home = () => {
             opacity: 0.3
           }}
         />
-        <Container sx={{ position: 'relative', zIndex: 1 }}>
-          <Typography 
-            variant="h2" 
-            sx={{ 
-              fontWeight: 700, 
-              mb: 2,
-              fontSize: { xs: '2rem', md: '3.5rem' }
-            }}
-          >
-            Chúng tôi phục vụ sản phẩm công nghệ tươi mới
-          </Typography>
-          <Typography 
-            variant="h5" 
-            sx={{ 
-              mb: 4, 
-              opacity: 0.9,
-              fontSize: { xs: '1.2rem', md: '1.5rem' }
-            }}
-          >
-            Chúng tôi cung cấp các sản phẩm công nghệ chất lượng cao
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            sx={{
-              backgroundColor: '#82ca9d',
-              color: 'white',
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-              borderRadius: '25px',
-              boxShadow: '0 4px 15px rgba(130, 202, 157, 0.3)',
-              '&:hover': {
-                backgroundColor: '#6bb77b',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 6px 20px rgba(130, 202, 157, 0.4)'
-              },
-              transition: 'all 0.3s ease'
-            }}
-          >
-            Xem chi tiết
-          </Button>
-        </Container>
+       <Container
+  sx={{
+    position: 'relative',
+    zIndex: 1,
+    textAlign: 'center',
+    py: { xs: 6, md: 10 },
+  }}
+>
+  <Typography
+    variant="h2"
+    sx={{
+      fontWeight: 700,
+      mb: 2,
+      fontSize: { xs: '2rem', md: '3.5rem' },
+      animation: 'fadeInDown 0.8s ease-out',
+    }}
+  >
+    Chúng tôi phục vụ sản phẩm công nghệ
+  </Typography>
+
+  <Typography
+    variant="h5"
+    sx={{
+      mb: 4,
+      opacity: 0.85,
+      fontSize: { xs: '1.1rem', md: '1.4rem' },
+      color: 'text.secondary',
+      animation: 'fadeInUp 1s ease-out',
+    }}
+  >
+    Cung cấp các sản phẩm công nghệ chất lượng cao, đáng tin cậy
+  </Typography>
+
+  <Button
+    variant="contained"
+    size="large"
+    sx={{
+      backgroundColor: '#82ca9d',
+      color: 'white',
+      px: 4,
+      py: 1.5,
+      fontSize: '1rem',
+      borderRadius: '30px',
+      boxShadow: '0 4px 20px rgba(130, 202, 157, 0.3)',
+      textTransform: 'none',
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        backgroundColor: '#6bb77b',
+        transform: 'translateY(-3px)',
+        boxShadow: '0 8px 24px rgba(130, 202, 157, 0.45)',
+      },
+      animation: 'fadeIn 1.2s ease-out',
+    }}
+  >
+    Xem chi tiết
+  </Button>
+
+  {/* CSS keyframes animation */}
+  <style>
+    {`
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    `}
+  </style>
+</Container>
+
       </Box>
 
       {/* Services Section */}
       <Container sx={{ py: 10 }}>
         <Grid container spacing={6}>
           {services.map((service, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
               <Card
                 sx={{
                   textAlign: 'center',
@@ -188,7 +239,7 @@ const Home = () => {
         </Grid>
       </Container>
 
-      {/* Featured Products Section */}
+      {/* All Products Section */}
       <Box sx={{ backgroundColor: '#f8fafc', py: 10, mt: 8 }}>
         <Container>
           <Box sx={{ textAlign: 'center', mb: 8 }}>
@@ -201,7 +252,7 @@ const Home = () => {
                 mb: 1
               }}
             >
-              Sản phẩm nổi bật
+              Tất cả sản phẩm
             </Typography>
             <Typography 
               variant="h3" 
@@ -211,266 +262,25 @@ const Home = () => {
                 color: '#2c3e50'
               }}
             >
-              Sản phẩm của chúng tôi
+              Bộ sưu tập laptop cao cấp
             </Typography>
             <Typography 
               variant="body1" 
               color="text.secondary"
               sx={{ maxWidth: 600, mx: 'auto' }}
             >
-              Khám phá bộ sưu tập sản phẩm công nghệ hàng đầu với chất lượng tuyệt vời
+              Khám phá {products.length} sản phẩm laptop chính hãng với chất lượng tuyệt vời
             </Typography>
           </Box>
 
           {products.length > 0 ? (
-            <>
-              <Grid container spacing={4}>
-                {products.slice(0, 4).map((product) => (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                    <Card
-                      sx={{
-                        height: '100%',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateY(-5px)',
-                          boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                        }
-                      }}
-                      onClick={() => navigate(`/product/${product.id}`)}
-                    >
-                      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-                        <img
-                          src={product.thumbnail || '/placeholder-image.jpg'}
-                          alt={product.name}
-                          style={{
-                            width: '100%',
-                            height: '200px',
-                            objectFit: 'cover'
-                          }}
-                        />
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: 'rgba(0,0,0,0.7)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            opacity: 0,
-                            transition: 'opacity 0.3s ease',
-                            '&:hover': {
-                              opacity: 1
-                            }
-                          }}
-                          className="product-overlay"
-                        >
-                          <Stack direction="row" spacing={1}>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/product/${product.id}`);
-                              }}
-                              sx={{ 
-                                minWidth: 'auto', 
-                                p: 1,
-                                backgroundColor: 'white',
-                                color: '#333',
-                                '&:hover': {
-                                  backgroundColor: '#f0f0f0'
-                                }
-                              }}
-                            >
-                              <Visibility />
-                            </Button>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              sx={{ 
-                                minWidth: 'auto', 
-                                p: 1,
-                                backgroundColor: '#ff6b6b',
-                                '&:hover': {
-                                  backgroundColor: '#ff5252'
-                                }
-                              }}
-                            >
-                              <Favorite />
-                            </Button>
-                          </Stack>
-                        </Box>
-                      </Box>
-                      <CardContent sx={{ p: 2 }}>
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            fontWeight: 600, 
-                            mb: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {product.name}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography 
-                            variant="h6" 
-                            sx={{ 
-                              color: '#82ca9d', 
-                              fontWeight: 700 
-                            }}
-                          >
-                            {product.variants?.[0]?.price?.toLocaleString('vi-VN')}₫
-                          </Typography>
-                          {product.variants?.[0]?.price && (
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                textDecoration: 'line-through',
-                                color: 'text.secondary'
-                              }}
-                            >
-                              {(product.variants[0].price * 1.2).toLocaleString('vi-VN')}₫
-                            </Typography>
-                          )}
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-              
-              {/* Second Row of Products */}
-              {products.length > 4 && (
-                <Grid container spacing={4} sx={{ mt: 6 }}>
-                  {products.slice(4, 8).map((product) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                      <Card
-                        sx={{
-                          height: '100%',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            transform: 'translateY(-5px)',
-                            boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                          }
-                        }}
-                        onClick={() => navigate(`/product/${product.id}`)}
-                      >
-                        <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-                          <img
-                            src={product.thumbnail || '/placeholder-image.jpg'}
-                            alt={product.name}
-                            style={{
-                              width: '100%',
-                              height: '200px',
-                              objectFit: 'cover'
-                            }}
-                          />
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              backgroundColor: 'rgba(0,0,0,0.7)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              opacity: 0,
-                              transition: 'opacity 0.3s ease',
-                              '&:hover': {
-                                opacity: 1
-                              }
-                            }}
-                            className="product-overlay"
-                          >
-                            <Stack direction="row" spacing={1}>
-                              <Button
-                                variant="contained"
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/product/${product.id}`);
-                                }}
-                                sx={{ 
-                                  minWidth: 'auto', 
-                                  p: 1,
-                                  backgroundColor: 'white',
-                                  color: '#333',
-                                  '&:hover': {
-                                    backgroundColor: '#f0f0f0'
-                                  }
-                                }}
-                              >
-                                <Visibility />
-                              </Button>
-                              <Button
-                                variant="contained"
-                                size="small"
-                                sx={{ 
-                                  minWidth: 'auto', 
-                                  p: 1,
-                                  backgroundColor: '#ff6b6b',
-                                  '&:hover': {
-                                    backgroundColor: '#ff5252'
-                                  }
-                                }}
-                              >
-                                <Favorite />
-                              </Button>
-                            </Stack>
-                          </Box>
-                        </Box>
-                        <CardContent sx={{ p: 2 }}>
-                          <Typography 
-                            variant="h6" 
-                            sx={{ 
-                              fontWeight: 600, 
-                              mb: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {product.name}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography 
-                              variant="h6" 
-                              sx={{ 
-                                color: '#82ca9d', 
-                                fontWeight: 700 
-                              }}
-                            >
-                              {product.variants?.[0]?.price?.toLocaleString('vi-VN')}₫
-                            </Typography>
-                            {product.variants?.[0]?.price && (
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  textDecoration: 'line-through',
-                                  color: 'text.secondary'
-                                }}
-                              >
-                                {(product.variants[0].price * 1.2).toLocaleString('vi-VN')}₫
-                              </Typography>
-                            )}
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
+            <Grid container spacing={3}>
+              {products.map((product) => (
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={product.id}>
+                  <ProductCard product={product} />
                 </Grid>
-              )}
-            </>
+              ))}
+            </Grid>
           ) : (
             <Box sx={{ textAlign: 'center', py: 8 }}>
               <Typography variant="h5" color="text.secondary">

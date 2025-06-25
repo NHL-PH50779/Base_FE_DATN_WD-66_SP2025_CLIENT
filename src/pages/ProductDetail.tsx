@@ -90,7 +90,11 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = async () => {
-    if (!currentVariant) return;
+    // Kiểm tra có giá sản phẩm không
+    if (displayPrice <= 0) {
+      alert('Sản phẩm chưa có giá!');
+      return;
+    }
     
     // Kiểm tra đăng nhập
     const token = localStorage.getItem('token');
@@ -105,9 +109,9 @@ const ProductDetail = () => {
     try {
       await cartService.addToCart(
         product.id, 
-        currentVariant.id, 
+        currentVariant?.id || null, 
         quantity, 
-        currentVariant.price
+        displayPrice
       );
       alert('Đã thêm vào giỏ hàng!');
     } catch (error: any) {
@@ -154,7 +158,8 @@ const ProductDetail = () => {
   }
 
   const currentVariant = product.variants?.[selectedVariant];
-  const displayPrice = currentVariant?.price || 0;
+  // Ưu tiên giá từ variant, nếu không có thì lấy từ product.price
+  const displayPrice = currentVariant?.price || Number(product.price) || 0;
   const originalPrice = displayPrice * 1.3;
   const discount = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
 
@@ -264,7 +269,7 @@ const ProductDetail = () => {
                           fontSize: '1rem'
                         }}
                       >
-                        {formatPrice(originalPrice * quantity)}
+                        {formatPrice(originalPrice)}
                       </Typography>
                     )}
                     <Typography 
@@ -275,7 +280,7 @@ const ProductDetail = () => {
                         fontSize: '2rem'
                       }}
                     >
-                      {formatPrice(displayPrice * quantity)}
+                      {formatPrice(displayPrice)}
                     </Typography>
                     {discount > 0 && (
                       <Chip 
@@ -291,48 +296,69 @@ const ProductDetail = () => {
                   </Stack>
                   {quantity > 1 && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Đơn giá: {formatPrice(displayPrice)} x {quantity}
+                      Đơn giá: {formatPrice(displayPrice)} x {quantity} = {formatPrice(displayPrice * quantity)}
                     </Typography>
                   )}
                 </Box>
 
                 {/* Variants */}
-                {product.variants && product.variants.length > 1 && (
+                {product.variants && product.variants.length > 0 && (
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="body1" sx={{ mb: 1, color: '#757575' }}>
                       Phân loại hàng
                     </Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Box sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+                      gap: 2,
+                      maxWidth: 600
+                    }}>
                       {product.variants.map((variant, index) => (
                         <Button
                           key={variant.id}
                           variant={selectedVariant === index ? "contained" : "outlined"}
                           onClick={() => setSelectedVariant(index)}
                           sx={{
-                            minWidth: 'auto',
-                            px: 2,
-                            py: 1,
-                            fontSize: '0.875rem',
+                            minWidth: 120,
+                            px: 3,
+                            py: 2,
+                            fontSize: '0.9rem',
                             textTransform: 'none',
-                            backgroundColor: selectedVariant === index ? '#2196F3' : 'transparent',
+                            backgroundColor: selectedVariant === index ? '#2196F3' : 'white',
                             borderColor: selectedVariant === index ? '#2196F3' : '#e0e0e0',
                             color: selectedVariant === index ? 'white' : '#333',
+                            borderRadius: 3,
+                            boxShadow: selectedVariant === index ? '0 4px 12px rgba(33, 150, 243, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
                             '&:hover': {
-                              backgroundColor: selectedVariant === index ? '#1976D2' : '#f5f5f5',
-                              borderColor: '#2196F3'
+                              backgroundColor: selectedVariant === index ? '#1976D2' : '#f8fafc',
+                              borderColor: '#2196F3',
+                              transform: 'translateY(-2px)',
+                              boxShadow: selectedVariant === index ? '0 6px 16px rgba(33, 150, 243, 0.4)' : '0 4px 12px rgba(0,0,0,0.15)'
                             },
                             display: 'flex',
                             flexDirection: 'column',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            gap: 1,
+                            transition: 'all 0.3s ease'
                           }}
                         >
-                          <Box>{variant.Name}</Box>
-                          <Box sx={{ fontSize: '0.75rem', fontWeight: 'bold', color: selectedVariant === index ? 'white' : '#2196F3' }}>
+                          <Box sx={{ fontWeight: 600, lineHeight: 1.2, textAlign: 'center' }}>
+                            {variant.Name}
+                          </Box>
+                          <Box sx={{ 
+                            fontSize: '0.85rem', 
+                            fontWeight: 700, 
+                            color: selectedVariant === index ? 'rgba(255,255,255,0.9)' : '#2196F3',
+                            background: selectedVariant === index ? 'rgba(255,255,255,0.1)' : 'rgba(33, 150, 243, 0.1)',
+                            px: 1.5,
+                            py: 0.5,
+                            borderRadius: 2
+                          }}>
                             {formatPrice(variant.price)}
                           </Box>
                         </Button>
                       ))}
-                    </Stack>
+                    </Box>
                   </Box>
                 )}
 
@@ -376,7 +402,7 @@ const ProductDetail = () => {
                     variant="outlined"
                     startIcon={<ShoppingCart />}
                     onClick={handleAddToCart}
-                    disabled={addingToCart || (currentVariant?.stock || 0) === 0}
+                    disabled={addingToCart || displayPrice <= 0}
                     sx={{
                       flex: 1,
                       py: 1.5,
@@ -394,6 +420,22 @@ const ProductDetail = () => {
                   </Button>
                   <Button
                     variant="contained"
+                    onClick={() => {
+                      // Chuyển trực tiếp sang thanh toán với sản phẩm này
+                      const orderData = {
+                        items: [{
+                          id: product.id,
+                          name: product.name,
+                          price: displayPrice,
+                          quantity: quantity,
+                          variant: currentVariant?.Name || '',
+                          image: product.thumbnail
+                        }],
+                        total: displayPrice * quantity + 30000 // + phí ship
+                      };
+                      navigate('/checkout', { state: { directBuy: true, orderData } });
+                    }}
+                    disabled={displayPrice <= 0}
                     sx={{
                       flex: 1,
                       py: 1.5,

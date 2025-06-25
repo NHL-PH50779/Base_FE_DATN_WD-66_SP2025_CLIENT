@@ -16,6 +16,7 @@ import {
   FavoriteBorder,
   Visibility 
 } from '@mui/icons-material';
+import { Stack } from '@mui/material';
 import { Link } from 'react-router-dom';
 import type { Product } from '../types/product.type';
 
@@ -27,10 +28,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [isFavorite, setIsFavorite] = React.useState(false);
   const [isHovered, setIsHovered] = React.useState(false);
 
-  // Lấy giá từ variant đầu tiên hoặc giá mặc định
+  // Lấy giá từ product.price hoặc variants
   const getDisplayPrice = () => {
+    // Ưu tiên lấy giá từ product.price
+    if (product.price) {
+      const price = typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price);
+      if (price > 0) {
+        return price;
+      }
+    }
+    // Nếu không có giá sản phẩm, lấy từ variants
     if (product.variants && product.variants.length > 0) {
-      // Lấy giá thấp nhất từ các variants
       const prices = product.variants.map(v => v.price).filter(p => p > 0);
       return prices.length > 0 ? Math.min(...prices) : 0;
     }
@@ -66,17 +74,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <Card
       sx={{
-        maxWidth: 320,
-        height: 420,
+        width: '100%',
+        height: 450,
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        borderRadius: 3,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-        transition: 'all 0.3s ease-in-out',
+        borderRadius: 4,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'hidden',
+        background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+        border: '1px solid rgba(0,0,0,0.04)',
         '&:hover': {
-          transform: 'translateY(-8px)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+          transform: 'translateY(-12px) scale(1.02)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+          borderColor: 'rgba(130, 202, 157, 0.3)'
         }
       }}
       onMouseEnter={() => setIsHovered(true)}
@@ -85,14 +97,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Discount Badge */}
       <Chip
         label="-17%"
-        color="error"
-        size="small"
         sx={{
           position: 'absolute',
-          top: 12,
-          left: 12,
-          zIndex: 2,
-          fontWeight: 'bold'
+          top: 16,
+          left: 16,
+          zIndex: 3,
+          fontWeight: 'bold',
+          fontSize: '0.75rem',
+          background: 'linear-gradient(45deg, #ff6b6b, #ff5252)',
+          color: 'white',
+          boxShadow: '0 4px 12px rgba(255, 107, 107, 0.4)'
         }}
       />
 
@@ -100,32 +114,41 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <IconButton
         sx={{
           position: 'absolute',
-          top: 8,
-          right: 8,
-          zIndex: 2,
-          backgroundColor: 'rgba(255,255,255,0.9)',
-          '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
+          top: 16,
+          right: 16,
+          zIndex: 3,
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          transition: 'all 0.3s ease',
+          '&:hover': { 
+            backgroundColor: 'white',
+            transform: 'scale(1.1)',
+            boxShadow: '0 6px 25px rgba(0,0,0,0.15)'
+          }
         }}
         onClick={() => setIsFavorite(!isFavorite)}
       >
         {isFavorite ? (
-          <Favorite sx={{ color: '#ff4757' }} />
+          <Favorite sx={{ color: '#ff4757', fontSize: 20 }} />
         ) : (
-          <FavoriteBorder />
+          <FavoriteBorder sx={{ fontSize: 20 }} />
         )}
       </IconButton>
 
       {/* Product Image */}
-      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+      <Box sx={{ position: 'relative', overflow: 'hidden', height: 240 }}>
         <CardMedia
           component="img"
-          height="200"
+          height="240"
           image={getImageUrl(product.thumbnail)}
           alt={product.name}
           sx={{
             objectFit: 'cover',
-            transition: 'transform 0.3s ease-in-out',
-            transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+            width: '100%',
+            height: '100%',
+            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isHovered ? 'scale(1.08)' : 'scale(1)',
           }}
         />
         
@@ -137,51 +160,63 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
+            background: 'linear-gradient(135deg, rgba(130, 202, 157, 0.9) 0%, rgba(107, 183, 123, 0.9) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             opacity: isHovered ? 1 : 0,
-            transition: 'opacity 0.3s ease-in-out',
+            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+            backdropFilter: 'blur(8px)'
           }}
         >
-          <Button
-            component={Link}
-            to={`/product/${product.id}`}
-            variant="contained"
-            startIcon={<Visibility />}
-            sx={{
-              backgroundColor: 'white',
-              color: 'black',
-              '&:hover': {
-                backgroundColor: '#f5f5f5',
-              }
-            }}
-          >
-            Xem chi tiết
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button
+              component={Link}
+              to={`/product/${product.id}`}
+              variant="contained"
+              startIcon={<Visibility />}
+              sx={{
+                backgroundColor: 'white',
+                color: '#2c3e50',
+                fontWeight: 600,
+                px: 3,
+                py: 1.5,
+                borderRadius: 3,
+                boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                '&:hover': {
+                  backgroundColor: '#f8fafc',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 12px 35px rgba(0,0,0,0.2)'
+                }
+              }}
+            >
+              Xem chi tiết
+            </Button>
+          </Stack>
         </Box>
       </Box>
 
       {/* Product Info */}
-      <CardContent sx={{ flexGrow: 1, p: 2 }}>
+      <CardContent sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column' }}>
         <Typography
           variant="h6"
           component={Link}
           to={`/product/${product.id}`}
           sx={{
             textDecoration: 'none',
-            color: 'inherit',
-            fontWeight: 600,
-            fontSize: '1rem',
-            lineHeight: 1.3,
+            color: '#2c3e50',
+            fontWeight: 700,
+            fontSize: '1.1rem',
+            lineHeight: 1.4,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            mb: 1,
+            mb: 2,
+            minHeight: '2.8rem',
+            transition: 'color 0.3s ease',
             '&:hover': {
-              color: 'primary.main'
+              color: '#82ca9d'
             }
           }}
         >
@@ -189,26 +224,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </Typography>
 
         {/* Rating */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <Rating value={4.5} precision={0.5} size="small" readOnly />
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-            (128)
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Rating value={4.5} precision={0.5} size="small" readOnly sx={{ color: '#ffc658' }} />
+          <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontWeight: 500 }}>
+            (128 đánh giá)
           </Typography>
         </Box>
 
         {/* Price */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, mt: 'auto' }}>
           <Typography
-            variant="h6"
-            color="error"
-            sx={{ fontWeight: 700, fontSize: '1.1rem' }}
+            variant="h5"
+            sx={{ 
+              fontWeight: 800, 
+              fontSize: '1.3rem',
+              background: 'linear-gradient(45deg, #82ca9d, #6bb77b)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
           >
             {formatPrice(displayPrice)}
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ textDecoration: 'line-through' }}
+            sx={{ 
+              textDecoration: 'line-through',
+              fontSize: '0.9rem',
+              fontWeight: 500
+            }}
           >
             {formatPrice(originalPrice)}
           </Typography>
@@ -220,14 +265,54 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           variant="contained"
           startIcon={<ShoppingCart />}
           disabled={!hasStock() || displayPrice === 0}
+          onClick={async () => {
+            // Kiểm tra đăng nhập
+            const token = localStorage.getItem('token');
+            if (!token) {
+              alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
+              window.location.href = '/login';
+              return;
+            }
+            
+            try {
+              // Import cartService
+              const { cartService } = await import('../services/cart.service');
+              await cartService.addToCart(product.id, null, 1);
+              alert('Đã thêm vào giỏ hàng!');
+            } catch (error: any) {
+              console.error('Error adding to cart:', error);
+              if (error.response?.status === 401) {
+                alert('Phiên đăng nhập hết hạn!');
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+              } else {
+                alert('Có lỗi khi thêm vào giỏ hàng!');
+              }
+            }
+          }}
           sx={{
-            backgroundColor: hasStock() && displayPrice > 0 ? '#2d3436' : '#ccc',
+            background: hasStock() && displayPrice > 0 
+              ? 'linear-gradient(45deg, #82ca9d 30%, #6bb77b 90%)'
+              : '#ccc',
             color: 'white',
-            py: 1,
-            borderRadius: 2,
-            fontWeight: 600,
+            py: 1.5,
+            borderRadius: 3,
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            textTransform: 'none',
+            boxShadow: hasStock() && displayPrice > 0 
+              ? '0 6px 20px rgba(130, 202, 157, 0.4)'
+              : 'none',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              backgroundColor: hasStock() && displayPrice > 0 ? '#636e72' : '#ccc',
+              background: hasStock() && displayPrice > 0 
+                ? 'linear-gradient(45deg, #6bb77b 30%, #5aa068 90%)'
+                : '#ccc',
+              transform: hasStock() && displayPrice > 0 ? 'translateY(-2px)' : 'none',
+              boxShadow: hasStock() && displayPrice > 0 
+                ? '0 8px 25px rgba(130, 202, 157, 0.5)'
+                : 'none'
             }
           }}
         >

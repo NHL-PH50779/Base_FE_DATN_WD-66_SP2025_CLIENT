@@ -12,7 +12,10 @@ import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
 import About from "./pages/About";
 import Checkout from "./pages/Checkout";
+import Payment from "./pages/Payment";
+import BankingInfo from "./pages/BankingInfo";
 import MyOrders from "./pages/MyOrders";
+import ProductReview from "./pages/ProductReview";
 import Contact from "./pages/Contact";
 import Invoice from "./pages/Invoice";
 const routeConfig = [
@@ -67,6 +70,10 @@ const routeConfig = [
       {
         path: "orders/:id",
         element: <MyOrders />,
+      },
+      {
+        path: "review/:orderId",
+        element: <ProductReview />,
       },
       {
         path: "invoice/:id",
