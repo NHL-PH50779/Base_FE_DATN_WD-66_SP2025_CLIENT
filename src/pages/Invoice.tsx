@@ -6,6 +6,8 @@ import {
   Stack,
   Typography,
   styled,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -32,6 +34,11 @@ const formatVND = (amount: number) =>
 const Invoice = () => {
   const { id } = useParams();
   const [order, setOrder] = useState<Order | null>(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'success' | 'error' });
+
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -42,7 +49,7 @@ const Invoice = () => {
 
       const data = await res.json();
       if (res.ok) setOrder(data.data);
-      else alert(data.message || "Lỗi khi tải hóa đơn");
+      else showSnackbar(data.message || "Lỗi khi tải hóa đơn", 'error');
     };
 
     if (id) fetchOrder();
@@ -98,6 +105,22 @@ const Invoice = () => {
       <Typography variant="h6" align="right" fontWeight={600}>
         Tổng cộng: {formatVND(Number(order.total))}
       </Typography>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

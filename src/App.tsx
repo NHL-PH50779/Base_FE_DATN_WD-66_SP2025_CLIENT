@@ -15,9 +15,13 @@ import Checkout from "./pages/Checkout";
 import Payment from "./pages/Payment";
 import BankingInfo from "./pages/BankingInfo";
 import MyOrders from "./pages/MyOrders";
+import OrderDetail from "./pages/OrderDetail";
 import ProductReview from "./pages/ProductReview";
 import Contact from "./pages/Contact";
 import Invoice from "./pages/Invoice";
+import Profile from "./pages/Profile";
+import ReviewDetail from "./pages/ReviewDetail";
+import Wishlist from "./pages/Wishlist";
 const routeConfig = [
   {
     path: "/login",
@@ -69,7 +73,7 @@ const routeConfig = [
       },
       {
         path: "orders/:id",
-        element: <MyOrders />,
+        element: <OrderDetail />,
       },
       {
         path: "review/:orderId",
@@ -82,6 +86,18 @@ const routeConfig = [
       {
         path: "contact",
         element: <Contact />,
+      },
+      {
+        path: "profile",
+        element: <Profile />,
+      },
+      {
+        path: "product/:productId/reviews",
+        element: <ReviewDetail />,
+      },
+      {
+        path: "wishlist",
+        element: <Wishlist />,
       },
     ],
   },

@@ -56,6 +56,7 @@ interface CartItem {
   product_variant?: {
     id: number;
     name: string;
+    stock?: number;
   };
 }
 
@@ -72,7 +73,15 @@ const Cart = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, itemId: 0, itemName: '' });
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [quantityUpdateTimeouts, setQuantityUpdateTimeouts] = useState<Map<number, NodeJS.Timeout>>(new Map());
   const navigate = useNavigate();
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      quantityUpdateTimeouts.forEach(timeout => clearTimeout(timeout));
+    };
+  }, [quantityUpdateTimeouts]);
 
   useEffect(() => {
     if (authService.isAuthenticated()) {
@@ -97,47 +106,30 @@ const Cart = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const updateQuantity = async (itemId: number, newQuantity: number) => {
-    if (newQuantity < 1) {
-      // Confirm delete when quantity goes to 0
-      const item = cart.items.find(i => i.id === itemId);
-      if (item && window.confirm(`Bạn có muốn xóa "${item.product.name}" khỏi giỏ hàng?`)) {
-        await removeItem(itemId);
-      }
-      return;
-    }
-    
-    setUpdatingItems(prev => new Set(prev).add(itemId));
-    try {
-      await cartService.updateCartItem(itemId, newQuantity);
-      await fetchCart();
-      showSnackbar('Đã cập nhật số lượng', 'success');
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      showSnackbar('Lỗi khi cập nhật số lượng', 'error');
-    } finally {
-      setUpdatingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemId);
-        return newSet;
-      });
-    }
-  };
+
 
   const removeItem = async (itemId: number) => {
+    // Optimistic update - remove from UI immediately
+    setCart(prevCart => ({
+      ...prevCart,
+      items: prevCart.items.filter(item => item.id !== itemId)
+    }));
+    
+    // Remove from selected items
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemId);
+      return newSet;
+    });
+    
     try {
       await cartService.removeFromCart(itemId);
-      await fetchCart();
-      // Remove from selected items if it was selected
-      setSelectedItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemId);
-        return newSet;
-      });
       showSnackbar('Đã xóa sản phẩm', 'success');
     } catch (error) {
       console.error('Error removing item:', error);
       showSnackbar('Lỗi khi xóa sản phẩm', 'error');
+      // Revert on error
+      await fetchCart();
     }
   };
 
@@ -161,6 +153,52 @@ const Cart = () => {
     }
   };
 
+  // Debounced quantity update to reduce API calls
+  const debouncedUpdateQuantity = (itemId: number, newQuantity: number) => {
+    // Clear existing timeout for this item
+    const existingTimeout = quantityUpdateTimeouts.get(itemId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+    
+    // Update UI immediately
+    setCart(prevCart => ({
+      ...prevCart,
+      items: prevCart.items.map(item => 
+        item.id === itemId 
+          ? { ...item, quantity: newQuantity }
+          : item
+      )
+    }));
+    
+    // Set new timeout for API call
+    const newTimeout = setTimeout(async () => {
+      setUpdatingItems(prev => new Set(prev).add(itemId));
+      try {
+        await cartService.updateCartItem(itemId, newQuantity);
+      } catch (error: any) {
+        console.error('Error updating quantity:', error);
+        showSnackbar('Lỗi khi cập nhật số lượng', 'error');
+        await fetchCart(); // Revert on error
+      } finally {
+        setUpdatingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
+        // Remove timeout from map
+        setQuantityUpdateTimeouts(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(itemId);
+          return newMap;
+        });
+      }
+    }, 300); // 300ms delay
+    
+    // Store timeout
+    setQuantityUpdateTimeouts(prev => new Map(prev).set(itemId, newTimeout));
+  };
+
   const getSelectedTotal = () => {
     return cart.items
       .filter(item => selectedItems.has(item.id))
@@ -168,9 +206,12 @@ const Cart = () => {
   };
 
   const handleDeleteClick = (item: CartItem) => {
-    if (window.confirm(`Bạn có muốn xóa "${item.product.name}" khỏi giỏ hàng?`)) {
-      removeItem(item.id);
-    }
+    setDeleteDialog({ open: true, itemId: item.id, itemName: item.product.name });
+  };
+
+  const confirmDelete = async () => {
+    await removeItem(deleteDialog.itemId);
+    setDeleteDialog({ open: false, itemId: 0, itemName: '' });
   };
 
   const handleCheckout = async () => {
@@ -392,11 +433,16 @@ const Cart = () => {
                                   {item.product.name}
                                 </Typography>
                                 {item.product_variant && (
-                                  <Chip
-                                    label={item.product_variant.name}
-                                    size="small"
-                                    sx={{ mb: 1, backgroundColor: '#e3f2fd' }}
-                                  />
+                                  <Box sx={{ mb: 1 }}>
+                                    <Chip
+                                      label={item.product_variant.name}
+                                      size="small"
+                                      sx={{ backgroundColor: '#e3f2fd', mr: 1 }}
+                                    />
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                      SKU: {item.product_variant.id || 'N/A'}
+                                    </Typography>
+                                  </Box>
                                 )}
                                 <Typography variant="h6" color="primary" sx={{ fontWeight: 700 }}>
                                   {formatPrice(item.price)}
@@ -404,49 +450,73 @@ const Cart = () => {
                               </Box>
 
                               {/* Quantity Controls */}
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <IconButton
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  disabled={item.quantity <= 1 || updatingItems.has(item.id)}
-                                  sx={{
-                                    border: '1px solid #e2e8f0',
-                                    '&:hover': { backgroundColor: '#f1f5f9' }
-                                  }}
-                                >
-                                  <Remove fontSize="small" />
-                                </IconButton>
-                                
-                                <Box
-                                  sx={{
-                                    minWidth: 50,
-                                    textAlign: 'center',
-                                    py: 1,
-                                    px: 2,
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: 1,
-                                    backgroundColor: 'white',
-                                    position: 'relative'
-                                  }}
-                                >
-                                  {updatingItems.has(item.id) ? (
-                                    <CircularProgress size={16} />
-                                  ) : (
-                                    <Typography variant="body1" fontWeight={600}>
-                                      {item.quantity}
-                                    </Typography>
-                                  )}
+                              <Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                  <IconButton
+                                    onClick={() => {
+                                      if (item.quantity <= 1) {
+                                        setDeleteDialog({ open: true, itemId: item.id, itemName: item.product.name });
+                                      } else {
+                                        debouncedUpdateQuantity(item.id, item.quantity - 1);
+                                      }
+                                    }}
+                                    disabled={updatingItems.has(item.id)}
+                                    sx={{
+                                      border: '1px solid #e2e8f0',
+                                      '&:hover': { backgroundColor: '#f1f5f9' }
+                                    }}
+                                  >
+                                    <Remove fontSize="small" />
+                                  </IconButton>
+                                  
+                                  <Box
+                                    sx={{
+                                      minWidth: 50,
+                                      textAlign: 'center',
+                                      py: 1,
+                                      px: 2,
+                                      border: '1px solid #e2e8f0',
+                                      borderRadius: 1,
+                                      backgroundColor: 'white',
+                                      position: 'relative'
+                                    }}
+                                  >
+                                    {updatingItems.has(item.id) ? (
+                                      <CircularProgress size={16} />
+                                    ) : (
+                                      <Typography variant="body1" fontWeight={600}>
+                                        {item.quantity}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                  
+                                  <IconButton
+                                    onClick={() => debouncedUpdateQuantity(item.id, item.quantity + 1)}
+                                    disabled={updatingItems.has(item.id) || 
+                                      (item.product_variant && typeof item.product_variant.stock === 'number' && item.quantity >= item.product_variant.stock)}
+                                    sx={{
+                                      border: '1px solid #e2e8f0',
+                                      '&:hover': { backgroundColor: '#f1f5f9' }
+                                    }}
+                                  >
+                                    <Add fontSize="small" />
+                                  </IconButton>
                                 </Box>
-                                
-                                <IconButton
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  disabled={updatingItems.has(item.id)}
-                                  sx={{
-                                    border: '1px solid #e2e8f0',
-                                    '&:hover': { backgroundColor: '#f1f5f9' }
-                                  }}
-                                >
-                                  <Add fontSize="small" />
-                                </IconButton>
+                                {/* Stock info */}
+                                {item.product_variant && typeof item.product_variant.stock === 'number' ? (
+                                  <Typography 
+                                    variant="caption" 
+                                    color={item.quantity >= item.product_variant.stock ? 'error' : 'text.secondary'} 
+                                    sx={{ fontSize: '0.75rem' }}
+                                  >
+                                    Còn {item.product_variant.stock} sản phẩm
+                                    {item.quantity >= item.product_variant.stock && ' (Đã đạt tối đa)'}
+                                  </Typography>
+                                ) : (
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                    {item.product_variant ? 'Không có thông tin tồn kho' : 'Sản phẩm chính'}
+                                  </Typography>
+                                )}
                               </Box>
 
                               {/* Total Price & Actions */}
@@ -493,10 +563,89 @@ const Cart = () => {
                     
                     {selectedItems.size > 0 ? (
                       <>
-                        <Stack spacing={2} sx={{ mb: 3 }}>
+                        {/* Selected Items Summary */}
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                            Sản phẩm đã chọn ({selectedItems.size})
+                          </Typography>
+                          <Stack spacing={1.5}>
+                            {cart.items
+                              .filter(item => selectedItems.has(item.id))
+                              .map((item) => (
+                                <Box key={item.id} sx={{ 
+                                  display: 'flex', 
+                                  justifyContent: 'space-between', 
+                                  alignItems: 'center',
+                                  p: 1.5,
+                                  backgroundColor: '#f8fafc',
+                                  borderRadius: 1,
+                                  border: '1px solid #e2e8f0'
+                                }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+                                    <img
+                                      src={getImageUrl(item.product.thumbnail)}
+                                      alt={item.product.name}
+                                      style={{
+                                        width: 40,
+                                        height: 40,
+                                        objectFit: 'cover',
+                                        borderRadius: 4
+                                      }}
+                                    />
+                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                      <Typography variant="body2" sx={{ 
+                                        fontWeight: 500,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                      }}>
+                                        {item.product.name}
+                                      </Typography>
+                                      {item.product_variant && (
+                                        <Typography variant="caption" color="text.secondary">
+                                          {item.product_variant.name}
+                                        </Typography>
+                                      )}
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                        {formatPrice(item.price)} × {item.quantity}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                    {formatPrice(item.price * item.quantity)}
+                                  </Typography>
+                                </Box>
+                              ))
+                            }
+                          </Stack>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        {/* Price Breakdown */}
+                        <Stack spacing={1.5} sx={{ mb: 3 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography>Tạm tính ({selectedItems.size} sản phẩm):</Typography>
-                            <Typography fontWeight={600}>{formatPrice(getSelectedTotal())}</Typography>
+                            <Typography variant="body2">Tạm tính ({selectedItems.size} sản phẩm):</Typography>
+                            <Typography variant="body2" fontWeight={500}>{formatPrice(getSelectedTotal())}</Typography>
+                          </Box>
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">Phí vận chuyển:</Typography>
+                            <Typography variant="body2" fontWeight={500}>{formatPrice(30000)}</Typography>
+                          </Box>
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">Giảm giá:</Typography>
+                            <Typography variant="body2" fontWeight={500}>0₫</Typography>
+                          </Box>
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="body2">Tổng số lượng:</Typography>
+                            <Typography variant="body2" fontWeight={500}>
+                              {cart.items
+                                .filter(item => selectedItems.has(item.id))
+                                .reduce((total, item) => total + item.quantity, 0)} sản phẩm
+                            </Typography>
                           </Box>
                         </Stack>
                         
@@ -504,20 +653,45 @@ const Cart = () => {
                         
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                           <Typography variant="h6" fontWeight={700}>
-                            Tổng cộng:
+                            Tổng thanh toán:
                           </Typography>
                           <Typography variant="h5" color="primary" fontWeight={700}>
-                            {formatPrice(getSelectedTotal())}
+                            {formatPrice(getSelectedTotal() + 30000)}
+                          </Typography>
+                        </Box>
+                        
+                        {/* Shipping Info */}
+                        <Box sx={{ 
+                          p: 2, 
+                          backgroundColor: '#e3f2fd', 
+                          borderRadius: 1, 
+                          border: '1px solid #2196f3',
+                          mb: 2
+                        }}>
+                          <Typography variant="body2" color="primary" sx={{ fontWeight: 500, textAlign: 'center' }}>
+                            🚚 Phí vận chuyển: 30.000₫ - Giao hàng trong 2-3 ngày
                           </Typography>
                         </Box>
                       </>
                     ) : (
-                      <Box sx={{ textAlign: 'center', py: 4 }}>
-                        <Typography variant="h6" color="text.secondary">
-                          0₫
+                      <Box sx={{ textAlign: 'center', py: 6 }}>
+                        <Box sx={{ 
+                          width: 80, 
+                          height: 80, 
+                          backgroundColor: '#f0f0f0', 
+                          borderRadius: '50%', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          margin: '0 auto 16px'
+                        }}>
+                          <ShoppingCartCheckout sx={{ fontSize: 40, color: 'text.secondary' }} />
+                        </Box>
+                        <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                          Chưa chọn sản phẩm nào
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          Vui lòng chọn sản phẩm để xem tổng tiền
+                        <Typography variant="body2" color="text.secondary">
+                          Vui lòng chọn sản phẩm để xem tóm tắt đơn hàng
                         </Typography>
                       </Box>
                     )}
@@ -534,14 +708,14 @@ const Cart = () => {
                           startIcon={<ShoppingCartCheckout />}
                           onClick={() => {
                             if (selectedItems.size === 0) {
-                              alert('Vui lòng chọn sản phẩm để thanh toán!');
+                              showSnackbar('Vui lòng chọn sản phẩm để thanh toán!', 'error');
                               return;
                             }
                             const selectedCartItems = cart.items.filter(item => selectedItems.has(item.id));
                             navigate('/checkout', { 
                               state: { 
                                 selectedItems: selectedCartItems,
-                                total: getSelectedTotal()
+                                total: getSelectedTotal() + 30000
                               }
                             });
                           }}
@@ -583,6 +757,24 @@ const Cart = () => {
       </Container>
 
 
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, itemId: 0, itemName: '' })}>
+        <DialogTitle>Xác nhận xóa sản phẩm</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn xóa "{deleteDialog.itemName}" khỏi giỏ hàng?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, itemId: 0, itemName: '' })}>
+            Hủy
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar */}
       <Snackbar

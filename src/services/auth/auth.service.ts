@@ -12,6 +12,20 @@ interface RegisterData {
   password_confirmation: string;
 }
 
+interface ProfileData {
+  name: string;
+  phone?: string;
+  address?: string;
+  birth_date?: string;
+  gender?: string;
+}
+
+interface ChangePasswordData {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
+}
+
 export const authService = {
   login: async (data: LoginData) => {
     try {
@@ -73,5 +87,26 @@ export const authService = {
 
   isAuthenticated: () => {
     return !!localStorage.getItem('token');
+  },
+
+  updateProfile: async (data: any) => {
+    try {
+      const response = await instance.put('/profile', data);
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  changePassword: async (data: any) => {
+    try {
+      const response = await instance.put('/change-password', data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };

@@ -7,11 +7,18 @@ import {
   Link,
   Divider,
   Paper,
+  Snackbar,
+  Alert
 } from "@mui/material";
 
 export default function PasswordReset() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   const validateEmail = (email: string) => {
     const re =
@@ -25,7 +32,7 @@ export default function PasswordReset() {
       return;
     }
     setError("");
-    alert(`Password reset link sent to ${email}`);
+    showSnackbar(`Password reset link sent to ${email}`, 'success');
   };
 
   return (
@@ -108,6 +115,22 @@ export default function PasswordReset() {
           Back to Sign In
         </Link>
       </Paper>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -20,7 +20,8 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
-  Alert
+  Alert,
+  Snackbar
 } from '@mui/material';
 import {
   Restore,
@@ -46,6 +47,11 @@ const TrashedProducts = () => {
   const [loading, setLoading] = useState(false);
   const [restoreDialog, setRestoreDialog] = useState({ open: false, productId: 0, productName: '' });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, productId: 0, productName: '' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   useEffect(() => {
     fetchTrashedProducts();
@@ -61,7 +67,7 @@ const TrashedProducts = () => {
       setProducts(response.data.data || []);
     } catch (error) {
       console.error('Error fetching trashed products:', error);
-      alert('Có lỗi khi tải danh sách sản phẩm đã xóa!');
+      showSnackbar('Có lỗi khi tải danh sách sản phẩm đã xóa!', 'error');
     } finally {
       setLoading(false);
     }
@@ -73,12 +79,12 @@ const TrashedProducts = () => {
       await axios.put(`http://127.0.0.1:8000/api/products/restore/${restoreDialog.productId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Khôi phục sản phẩm thành công!');
+      showSnackbar('Khôi phục sản phẩm thành công!', 'success');
       setRestoreDialog({ open: false, productId: 0, productName: '' });
       fetchTrashedProducts();
     } catch (error) {
       console.error('Error restoring product:', error);
-      alert('Có lỗi khi khôi phục sản phẩm!');
+      showSnackbar('Có lỗi khi khôi phục sản phẩm!', 'error');
     }
   };
 
@@ -88,12 +94,12 @@ const TrashedProducts = () => {
       await axios.delete(`http://127.0.0.1:8000/api/products/${deleteDialog.productId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Xóa vĩnh viễn sản phẩm thành công!');
+      showSnackbar('Xóa vĩnh viễn sản phẩm thành công!', 'success');
       setDeleteDialog({ open: false, productId: 0, productName: '' });
       fetchTrashedProducts();
     } catch (error) {
       console.error('Error permanently deleting product:', error);
-      alert('Có lỗi khi xóa vĩnh viễn sản phẩm!');
+      showSnackbar('Có lỗi khi xóa vĩnh viễn sản phẩm!', 'error');
     }
   };
 
@@ -290,6 +296,22 @@ const TrashedProducts = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

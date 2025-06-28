@@ -21,8 +21,10 @@ import {
   Star,
   Send
 } from '@mui/icons-material';
+import { Snackbar } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
-import { orderService, reviewService } from '../services/order.service';
+import { orderService } from '../services/order.service';
+import { commentService } from '../services/comment.service';
 
 interface OrderItem {
   id: number;
@@ -49,6 +51,7 @@ const ProductReview = () => {
   const [reviews, setReviews] = useState<{ [key: number]: ReviewData }>({});
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   useEffect(() => {
     if (orderId) {
@@ -59,8 +62,16 @@ const ProductReview = () => {
   const fetchOrderItems = async () => {
     setLoading(true);
     try {
-      const response = await orderService.getOrderDetail(parseInt(orderId!));
-      const items = response.data.items || [];
+      // Get order detail which should include items
+      const response = await orderService.getOrderById(parseInt(orderId!));
+      const orderData = response.data;
+      const items = orderData.items || orderData.order_items || [];
+      
+      if (items.length === 0) {
+        showSnackbar('Không tìm thấy sản phẩm trong đơn hàng!', 'error');
+        return;
+      }
+      
       setOrderItems(items);
       
       // Initialize reviews state
@@ -76,7 +87,7 @@ const ProductReview = () => {
       setReviews(initialReviews);
     } catch (error) {
       console.error('Error fetching order items:', error);
-      alert('Có lỗi khi tải thông tin đơn hàng!');
+      showSnackbar('Có lỗi khi tải thông tin đơn hàng!', 'error');
     } finally {
       setLoading(false);
     }
@@ -141,7 +152,7 @@ const ProductReview = () => {
       );
 
       if (reviewsToSubmit.length === 0) {
-        alert('Vui lòng viết đánh giá cho ít nhất một sản phẩm!');
+        showSnackbar('Vui lòng viết đánh giá cho ít nhất một sản phẩm!', 'error');
         return;
       }
 
@@ -151,14 +162,18 @@ const ProductReview = () => {
           ...review,
           order_id: parseInt(orderId!)
         };
-        await reviewService.submitReview(reviewData);
+        await commentService.addReview({
+          product_id: review.product_id,
+          content: review.comment,
+          rating: review.rating
+        });
       }
 
-      alert('Đánh giá đã được gửi thành công!');
-      navigate('/orders');
+      showSnackbar('Đánh giá đã được gửi thành công!', 'success');
+      setTimeout(() => navigate('/orders'), 1500);
     } catch (error) {
       console.error('Error submitting reviews:', error);
-      alert('Có lỗi xảy ra khi gửi đánh giá!');
+      showSnackbar('Có lỗi xảy ra khi gửi đánh giá!', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -173,6 +188,10 @@ const ProductReview = () => {
       5: 'Rất hài lòng'
     };
     return texts[rating as keyof typeof texts];
+  };
+
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
   };
 
   if (loading) {
@@ -218,13 +237,19 @@ const ProductReview = () => {
                 {/* Product Info */}
                 <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
                   <img
-                    src={item.product.thumbnail}
+                    src={item.product.thumbnail?.startsWith('http') 
+                      ? item.product.thumbnail 
+                      : `http://127.0.0.1:8000/storage/products/${item.product.thumbnail?.replace('products/', '') || 'placeholder.jpg'}`
+                    }
                     alt={item.product.name}
                     style={{
                       width: 100,
                       height: 100,
                       objectFit: 'cover',
                       borderRadius: 8
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
                     }}
                   />
                   <Box sx={{ flex: 1 }}>
@@ -368,6 +393,23 @@ const ProductReview = () => {
           </Button>
         </Box>
       </Container>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

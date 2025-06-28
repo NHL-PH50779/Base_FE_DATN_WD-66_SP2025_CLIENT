@@ -12,7 +12,8 @@ import {
   IconButton,
   Divider,
   Card,
-  CardContent
+  CardContent,
+  Snackbar
 } from '@mui/material';
 import {
   Email,
@@ -32,33 +33,77 @@ const ClientLogin = () => {
     email: '',
     password: ''
   });
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const navigate = useNavigate();
 
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    if (validationErrors[name]) {
+      setValidationErrors({
+        ...validationErrors,
+        [name]: ''
+      });
+    }
+    if (error) {
+      setError('');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.email.trim() || !formData.password.trim()) {
+      setError('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Email không hợp lệ');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       const response = await authService.login(formData);
-      if (response.user.role === 'admin' || response.user.role === 'super_admin') {
-        window.location.href = 'http://localhost:5173/admin';
-      } else {
-        navigate('/home');
-      }
+      
+      showSnackbar('Đăng nhập thành công!', 'success');
+      
+      setTimeout(() => {
+        if (response.user.role === 'admin' || response.user.role === 'super_admin') {
+          window.location.href = 'http://localhost:5173/admin';
+        } else {
+          navigate('/home');
+        }
+      }, 1000);
     } catch (error: any) {
       console.error('Login error:', error);
-      setError(error.response?.data?.message || 'Lỗi đăng nhập');
+      let errorMessage = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
+      
+      if (error.response?.status === 401) {
+        errorMessage = error.response.data.message || 'Email hoặc mật khẩu không đúng';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Tài khoản của bạn đã bị khóa';
+      } else if (error.response?.status === 422) {
+        errorMessage = error.response.data.message || 'Thông tin nhập không hợp lệ';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -142,6 +187,8 @@ const ClientLogin = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    error={!!validationErrors.email}
+                    helperText={validationErrors.email}
                     sx={{ mb: 3 }}
                     InputProps={{
                       startAdornment: (
@@ -166,6 +213,8 @@ const ClientLogin = () => {
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    error={!!validationErrors.password}
+                    helperText={validationErrors.password}
                     sx={{ mb: 4 }}
                     InputProps={{
                       startAdornment: (
@@ -301,6 +350,22 @@ const ClientLogin = () => {
           </Card>
         </motion.div>
       </Container>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

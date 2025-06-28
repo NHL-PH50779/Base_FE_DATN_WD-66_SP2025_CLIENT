@@ -10,7 +10,7 @@ const Footer = () => {
     >
       <Grid container spacing={4} justifyContent="center">
         {/* THÔNG TIN CÔNG TY */}
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
             THÔNG TIN CÔNG TY
           </Typography>
@@ -34,7 +34,7 @@ const Footer = () => {
         </Grid>
 
         {/* VỀ TECHSHOP */}
-        <Grid item xs={12} sm={6} md={2.5}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
           <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
             VỀ TECHSHOP
           </Typography>
@@ -52,7 +52,7 @@ const Footer = () => {
         </Grid>
 
         {/* CHÍNH SÁCH */}
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
             CHÍNH SÁCH
           </Typography>
@@ -72,26 +72,6 @@ const Footer = () => {
             </Typography>
           ))}
         </Grid>
-
-        {/* THANH TOÁN & LOGO */}
-        {/* <Grid item xs={12} sm={6} md={3}>
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-            THANH TOÁN
-          </Typography>
-          <Typography variant="body2">
-            • Thanh toán trực tuyến (Internet Banking)
-          </Typography>
-          <Typography variant="body2">
-            • Thanh toán khi nhận hàng (COD)
-          </Typography>
-          <Box mt={2}>
-            <img
-              src="/footer.png" // Hãy chắc chắn ảnh ở public/footer.png
-              alt="Bộ Công Thương"
-              style={{ maxWidth: "180px" }}
-            />
-          </Box>
-        </Grid> */}
       </Grid>
     </Box>
   );

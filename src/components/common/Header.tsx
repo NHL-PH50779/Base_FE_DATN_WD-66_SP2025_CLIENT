@@ -25,6 +25,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CloseIcon from "@mui/icons-material/Close";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import LogoutIcon from "@mui/icons-material/Logout";
+import PersonIcon from "@mui/icons-material/Person";
 import { categoryService } from "../../services/category.service";
 import { productService } from "../../services/product.service";
 import { authService } from "../../services/auth/auth.service";
@@ -101,6 +102,11 @@ const Header = () => {
 
   const handleAdminLogin = () => {
     window.location.href = 'http://localhost:5173/admin/login';
+    handleUserClose();
+  };
+
+  const handleProfile = () => {
+    navigate('/profile');
     handleUserClose();
   };
 
@@ -315,7 +321,7 @@ const Header = () => {
             <SearchIcon />
           </IconButton>
           
-          <IconButton>
+          <IconButton component={Link} to="/wishlist">
             <FavoriteBorderIcon />
           </IconButton>
           
@@ -343,7 +349,7 @@ const Header = () => {
           }
         }}
       >
-        <MenuItem onClick={() => handleCategorySelect(0)}>
+        <MenuItem onClick={() => { navigate('/shop'); handleCategoryClose(); }}>
           <Typography fontWeight={600}>Tất cả sản phẩm</Typography>
         </MenuItem>
         <Divider />
@@ -371,6 +377,11 @@ const Header = () => {
           }
         }}
       >
+        <MenuItem onClick={handleProfile}>
+          <PersonIcon sx={{ mr: 1, color: '#2196f3' }} />
+          <Typography>Thông tin cá nhân</Typography>
+        </MenuItem>
+        <Divider />
         <MenuItem onClick={handleAdminLogin}>
           <AdminPanelSettingsIcon sx={{ mr: 1, color: '#ff9800' }} />
           <Typography>Trang quản trị</Typography>

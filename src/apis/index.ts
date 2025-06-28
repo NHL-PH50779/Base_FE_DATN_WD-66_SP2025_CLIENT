@@ -2,18 +2,22 @@ import axios from "axios";
 
 const instance = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
-  timeout: 20000,
+  timeout: 8000, // Giảm xuống 8s
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
   },
 });
 
-// Interceptor để xử lý Git conflicts
+// Interceptor để xử lý Git conflicts và timeout
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API Error:", error.response?.data || error.message);
+    if (error.code === 'ECONNABORTED') {
+      console.warn('API Timeout:', error.config?.url);
+    } else {
+      console.error("API Error:", error.response?.data || error.message);
+    }
     return Promise.reject(error);
   }
 );

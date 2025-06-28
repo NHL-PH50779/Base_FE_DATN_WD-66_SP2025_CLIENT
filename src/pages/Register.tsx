@@ -8,7 +8,8 @@ import {
   Button,
   Typography,
   Box,
-  Alert
+  Alert,
+  Snackbar
 } from '@mui/material';
 import { authService } from '../services/auth/auth.service';
 
@@ -22,10 +23,29 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Kiểm tra thông tin đầu vào
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.password_confirmation.trim()) {
+      setError('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Email không hợp lệ');
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError('Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
     if (formData.password !== formData.password_confirmation) {
       setError('Mật khẩu xác nhận không khớp');
       return;
@@ -35,12 +55,29 @@ const Register = () => {
     setError('');
 
     try {
-      await authService.register(formData);
-      alert('Đăng ký thành công! Vui lòng đăng nhập.');
-      navigate('/login');
+      const response = await authService.register(formData);
+      showSnackbar('Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.', 'success');
+      setTimeout(() => navigate('/login'), 1500);
     } catch (error: any) {
       console.error('Register error:', error);
-      setError(error.response?.data?.message || 'Đăng ký thất bại');
+      // Xử lý các loại lỗi khác nhau
+      let errorMessage = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
+      
+      if (error.response?.status === 422) {
+        // Lỗi validation
+        const errors = error.response.data.errors;
+        if (errors?.email) {
+          errorMessage = errors.email[0];
+        } else if (errors?.password) {
+          errorMessage = errors.password[0];
+        } else {
+          errorMessage = error.response.data.message || 'Thông tin nhập không hợp lệ';
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -111,6 +148,22 @@ const Register = () => {
           </Box>
         </CardContent>
       </Card>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

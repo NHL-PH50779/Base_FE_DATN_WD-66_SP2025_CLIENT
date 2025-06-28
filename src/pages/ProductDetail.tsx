@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import WishlistButton from '../components/common/WishlistButton';
 import {
   Container,
   Grid,
@@ -14,12 +15,13 @@ import {
   Breadcrumbs,
   Link,
   IconButton,
-  Divider
+  Divider,
+  Snackbar,
+  ImageList,
+  ImageListItem
 } from '@mui/material';
 import { 
   ShoppingCart, 
-  Favorite, 
-  FavoriteBorder,
   Share,
   LocalShipping,
   Security,
@@ -33,6 +35,7 @@ import {
 import { productService } from '../services/product.service';
 import { cartService } from '../services/cart.service';
 import type { Product } from '../types/product.type';
+import ProductCommentsAndReviews from '../components/ProductCommentsAndReviews';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,8 +45,10 @@ const ProductDetail = () => {
   const [error, setError] = useState('');
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [productImages, setProductImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -62,6 +67,14 @@ const ProductDetail = () => {
     try {
       const response = await productService.getProductById(productId);
       setProduct(response.data);
+      
+      // Setup product images
+      const images = [];
+      if (response.data.thumbnail) {
+        images.push(response.data.thumbnail);
+      }
+      // Add more images if available from variants or gallery
+      setProductImages(images.length > 0 ? images : ['/placeholder-image.jpg']);
     } catch (error) {
       console.error('Error fetching product:', error);
       setError('Không thể tải thông tin sản phẩm');
@@ -70,10 +83,14 @@ const ProductDetail = () => {
     }
   };
 
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
   const getImageUrl = (thumbnail: string) => {
     if (!thumbnail) return '/placeholder-image.jpg';
     if (thumbnail.startsWith('http')) return thumbnail;
-    return `http://localhost/storage/products/${thumbnail}`;
+    return `http://127.0.0.1:8000/storage/products/${thumbnail.replace('products/', '')}`;
   };
 
   const formatPrice = (price: number) => {
@@ -92,7 +109,7 @@ const ProductDetail = () => {
   const handleAddToCart = async () => {
     // Kiểm tra có giá sản phẩm không
     if (displayPrice <= 0) {
-      alert('Sản phẩm chưa có giá!');
+      showSnackbar('Sản phẩm chưa có giá!', 'error');
       return;
     }
     
@@ -100,8 +117,8 @@ const ProductDetail = () => {
     const token = localStorage.getItem('token');
     console.log('Current token:', token);
     if (!token) {
-      alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
-      window.location.href = '/login';
+      showSnackbar('Vui lòng đăng nhập để thêm vào giỏ hàng!', 'error');
+      setTimeout(() => navigate('/login'), 1500);
       return;
     }
     
@@ -113,16 +130,16 @@ const ProductDetail = () => {
         quantity, 
         displayPrice
       );
-      alert('Đã thêm vào giỏ hàng!');
+      showSnackbar('Đã thêm vào giỏ hàng!', 'success');
     } catch (error: any) {
       console.error('Error adding to cart:', error);
       if (error.response?.status === 401) {
-        alert('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!');
+        showSnackbar('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!', 'error');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        setTimeout(() => navigate('/login'), 1500);
       } else {
-        alert('Có lỗi xảy ra khi thêm vào giỏ hàng!');
+        showSnackbar('Có lỗi xảy ra khi thêm vào giỏ hàng!', 'error');
       }
     } finally {
       setAddingToCart(false);
@@ -187,44 +204,96 @@ const ProductDetail = () => {
         <Box sx={{ backgroundColor: 'white', borderRadius: 1, p: 3, mb: 2 }}>
           <Grid container spacing={3}>
             {/* Product Images */}
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <Box sx={{ position: 'relative' }}>
-                <img
-                  src={getImageUrl(product.thumbnail)}
-                  alt={product.name}
-                  style={{
-                    width: '100%',
-                    height: '400px',
-                    objectFit: 'cover',
-                    borderRadius: '4px'
-                  }}
-                />
-                {discount > 0 && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      backgroundColor: '#2196F3',
-                      color: 'white',
-                      px: 1,
-                      py: 0.5,
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold'
+                {/* Main Image */}
+                <Box sx={{ position: 'relative', mb: 2 }}>
+                  <img
+                    src={getImageUrl(productImages[selectedImageIndex] || product.thumbnail)}
+                    alt={product.name}
+                    style={{
+                      width: '100%',
+                      height: '400px',
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
                     }}
-                  >
-                    -{discount}%
+                  />
+                  {discount > 0 && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        backgroundColor: '#ff4444',
+                        color: 'white',
+                        px: 1.5,
+                        py: 0.5,
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        borderRadius: 1
+                      }}
+                    >
+                      -{discount}%
+                    </Box>
+                  )}
+                </Box>
+
+                {/* Thumbnail Images */}
+                {productImages.length > 1 && (
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2, overflowX: 'auto' }}>
+                    {productImages.map((image, index) => (
+                      <Box
+                        key={index}
+                        onClick={() => setSelectedImageIndex(index)}
+                        sx={{
+                          minWidth: 80,
+                          height: 80,
+                          border: selectedImageIndex === index ? '2px solid #2196F3' : '1px solid #e0e0e0',
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            borderColor: '#2196F3'
+                          }
+                        }}
+                      >
+                        <img
+                          src={getImageUrl(image)}
+                          alt={`${product.name} ${index + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      </Box>
+                    ))}
                   </Box>
                 )}
 
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2 }}>
+                {/* Action Buttons */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                  <Box sx={{ 
+                    border: '1px solid #e0e0e0', 
+                    borderRadius: 2,
+                    '&:hover': {
+                      backgroundColor: '#e3f2fd',
+                      borderColor: '#2196F3'
+                    }
+                  }}>
+                    <WishlistButton productId={product.id} size="large" />
+                  </Box>
                   <IconButton 
-                    onClick={() => setIsFavorite(!isFavorite)}
-                    sx={{ border: '1px solid #e0e0e0', borderRadius: 1 }}
+                    sx={{ 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: 2,
+                      '&:hover': {
+                        backgroundColor: '#e3f2fd',
+                        borderColor: '#2196F3'
+                      }
+                    }}
                   >
-                    {isFavorite ? <Favorite sx={{ color: '#2196F3' }} /> : <FavoriteBorder />}
-                  </IconButton>
-                  <IconButton sx={{ border: '1px solid #e0e0e0', borderRadius: 1 }}>
                     <Share />
                   </IconButton>
                 </Box>
@@ -232,7 +301,7 @@ const ProductDetail = () => {
             </Grid>
 
             {/* Product Info */}
-            <Grid item xs={12} md={7}>
+            <Grid size={{ xs: 12, md: 7 }}>
               <Box>
                 {/* Product Name */}
                 <Typography variant="h5" sx={{ fontWeight: 400, mb: 2, lineHeight: 1.4 }}>
@@ -483,7 +552,7 @@ const ProductDetail = () => {
         </Box>
 
         {/* Product Description */}
-        <Box sx={{ backgroundColor: 'white', borderRadius: 1, p: 3 }}>
+        <Box sx={{ backgroundColor: 'white', borderRadius: 1, p: 3, mb: 2 }}>
           <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
             MÔ TẢ SẢN PHẨM
           </Typography>
@@ -511,7 +580,29 @@ const ProductDetail = () => {
             </Box>
           </Box>
         </Box>
+
+        {/* Product Reviews & Comments */}
+        <Box sx={{ backgroundColor: 'white', borderRadius: 1, p: 3 }}>
+          <ProductCommentsAndReviews productId={product.id} />
+        </Box>
       </Container>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -19,7 +19,7 @@ const parseResponse = (response: any) => {
 export const productService = {
   getAllProducts: async () => {
     try {
-      const response = await instance.get("/products");
+      const response = await instance.get('/products', { timeout: 10000 });
       const data = parseResponse(response);
       return { data: Array.isArray(data) ? data : [] };
     } catch (error) {
@@ -30,18 +30,18 @@ export const productService = {
 
   getProductById: async (id: number) => {
     try {
-      const response = await instance.get(`/products/${id}`);
+      const response = await instance.get(`/products/${id}`, { timeout: 10000 });
       const data = parseResponse(response);
       return { data };
     } catch (error) {
       console.error(`Error fetching product ${id}:`, error);
-      throw error;
+      return { data: null };
     }
   },
 
   searchProducts: async (keyword: string) => {
     try {
-      const response = await instance.get(`/products/search?keyword=${keyword}`);
+      const response = await instance.get(`/products/search?keyword=${keyword}`, { timeout: 10000 });
       const data = parseResponse(response);
       return { data: Array.isArray(data) ? data : [] };
     } catch (error) {

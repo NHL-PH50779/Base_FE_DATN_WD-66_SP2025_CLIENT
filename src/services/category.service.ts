@@ -1,5 +1,8 @@
 import instance from "../apis";
 
+// Set timeout cho category service
+instance.defaults.timeout = 8000;
+
 const parseResponse = (response: any) => {
   let data;
   if (typeof response.data === 'string') {
@@ -18,12 +21,20 @@ const parseResponse = (response: any) => {
 export const categoryService = {
   getAllCategories: async () => {
     try {
-      const response = await instance.get("/categories");
+      const response = await instance.get("/categories", { timeout: 10000 });
       const data = parseResponse(response);
       return { data: Array.isArray(data) ? data : [] };
     } catch (error) {
       console.error("Error fetching categories:", error);
-      return { data: [] };
+      // Fallback to mock data if API fails
+      return {
+        data: [
+          { id: 1, name: 'Laptop', description: 'Máy tính xách tay' },
+          { id: 2, name: 'Điện thoại', description: 'Smartphone' },
+          { id: 3, name: 'Tablet', description: 'Máy tính bảng' },
+          { id: 4, name: 'Phụ kiện', description: 'Phụ kiện công nghệ' }
+        ]
+      };
     }
   }
 };

@@ -1,7 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
-const images = ["./banner1.png", "./banner2.png"]; // Thêm nhiều ảnh nếu muốn
+const images = ["/banner1.png", "/banner2.png"]; // Thêm nhiều ảnh nếu muốn
 
 const Banner = () => {
   const [currentIndex, setCurrentIndex] = useState(0);

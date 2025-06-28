@@ -8,12 +8,13 @@ import {
   Box,
   Chip,
   IconButton,
-  Rating
+  Rating,
+  Snackbar,
+  Alert
 } from '@mui/material';
+import WishlistButton from './common/WishlistButton';
 import { 
   ShoppingCart, 
-  Favorite, 
-  FavoriteBorder,
   Visibility 
 } from '@mui/icons-material';
 import { Stack } from '@mui/material';
@@ -22,11 +23,16 @@ import type { Product } from '../types/product.type';
 
 interface ProductCardProps {
   product: Product;
+  onRemoveFromWishlist?: (productId: number) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const [isFavorite, setIsFavorite] = React.useState(false);
+const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist }) => {
   const [isHovered, setIsHovered] = React.useState(false);
+  const [snackbar, setSnackbar] = React.useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   // Lấy giá từ product.price hoặc variants
   const getDisplayPrice = () => {
@@ -75,9 +81,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     <Card
       sx={{
         width: '100%',
-        height: 450,
+        height: 480,
+        minHeight: 480,
+        maxHeight: 480,
         display: 'flex',
         flexDirection: 'column',
+        flex: 1,
         position: 'relative',
         borderRadius: 4,
         boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
@@ -110,31 +119,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         }}
       />
 
-      {/* Favorite Button */}
-      <IconButton
+      {/* Wishlist Button */}
+      <Box
         sx={{
           position: 'absolute',
           top: 16,
           right: 16,
           zIndex: 3,
           backgroundColor: 'rgba(255,255,255,0.95)',
+          borderRadius: '50%',
           backdropFilter: 'blur(10px)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-          transition: 'all 0.3s ease',
-          '&:hover': { 
-            backgroundColor: 'white',
-            transform: 'scale(1.1)',
-            boxShadow: '0 6px 25px rgba(0,0,0,0.15)'
-          }
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
         }}
-        onClick={() => setIsFavorite(!isFavorite)}
       >
-        {isFavorite ? (
-          <Favorite sx={{ color: '#ff4757', fontSize: 20 }} />
-        ) : (
-          <FavoriteBorder sx={{ fontSize: 20 }} />
-        )}
-      </IconButton>
+        <WishlistButton 
+          productId={product.id} 
+          size="medium" 
+          onRemoveFromWishlist={onRemoveFromWishlist}
+        />
+      </Box>
 
       {/* Product Image */}
       <Box sx={{ position: 'relative', overflow: 'hidden', height: 240 }}>
@@ -269,8 +272,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             // Kiểm tra đăng nhập
             const token = localStorage.getItem('token');
             if (!token) {
-              alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
-              window.location.href = '/login';
+              showSnackbar('Vui lòng đăng nhập để thêm vào giỏ hàng!', 'error');
+              setTimeout(() => window.location.href = '/login', 1500);
               return;
             }
             
@@ -278,16 +281,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               // Import cartService
               const { cartService } = await import('../services/cart.service');
               await cartService.addToCart(product.id, null, 1);
-              alert('Đã thêm vào giỏ hàng!');
+              showSnackbar('Đã thêm vào giỏ hàng!', 'success');
             } catch (error: any) {
               console.error('Error adding to cart:', error);
               if (error.response?.status === 401) {
-                alert('Phiên đăng nhập hết hạn!');
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
+                showSnackbar('Phiên đăng nhập hết hạn!', 'error');
+                setTimeout(() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  window.location.href = '/login';
+                }, 1500);
               } else {
-                alert('Có lỗi khi thêm vào giỏ hàng!');
+                showSnackbar('Có lỗi khi thêm vào giỏ hàng!', 'error');
               }
             }
           }}
@@ -319,6 +324,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {!hasStock() ? 'Hết hàng' : displayPrice === 0 ? 'Liên hệ' : 'Thêm vào giỏ'}
         </Button>
       </CardContent>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Card>
   );
 };
