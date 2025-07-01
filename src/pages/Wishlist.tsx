@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { wishlistService } from '../services/wishlist.service';
 import { productService } from '../services/product.service';
+import { useCartStore } from '../stores/cart.store';
 import ProductCard from '../components/ProductCard';
 import type { Product } from '../types/product.type';
 import { useNavigate } from 'react-router-dom';
@@ -19,9 +20,35 @@ const Wishlist = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { wishlistCount } = useCartStore();
 
   useEffect(() => {
     fetchWishlist();
+  }, []);
+
+  // Refresh khi wishlistCount thay đổi
+  useEffect(() => {
+    if (!loading) {
+      fetchWishlist();
+    }
+  }, [wishlistCount]);
+  
+  // Lắng nghe thay đổi localStorage
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log('Storage changed, refreshing wishlist');
+      fetchWishlist();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Custom event cho cùng tab
+    window.addEventListener('wishlistChanged', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('wishlistChanged', handleStorageChange);
+    };
   }, []);
 
   const fetchWishlist = async () => {
@@ -30,16 +57,17 @@ const Wishlist = () => {
       const wishlistResponse = await wishlistService.getWishlist();
       const productIds = wishlistResponse.data || [];
       
+      console.log('Wishlist productIds:', productIds);
+      
       if (productIds.length > 0) {
-        // Lấy thông tin sản phẩm từ API
-        const productsResponse = await productService.getAllProducts();
-        const allProducts = productsResponse.data || [];
+        const productPromises = productIds.map(id => productService.getProductById(id));
+        const productResponses = await Promise.all(productPromises);
         
-        // Lọc sản phẩm trong wishlist
-        const wishlistProducts = allProducts.filter((product: Product) => 
-          productIds.includes(product.id)
-        );
+        const wishlistProducts = productResponses
+          .map(response => response.data)
+          .filter(product => product !== null);
         
+        console.log('Wishlist products:', wishlistProducts);
         setWishlistProducts(wishlistProducts);
       } else {
         setWishlistProducts([]);

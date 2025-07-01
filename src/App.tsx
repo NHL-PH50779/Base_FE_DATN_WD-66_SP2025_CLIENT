@@ -1,27 +1,39 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { useRoutes } from "react-router-dom";
+import { useCartSync } from "./hooks/useCartSync";
+import { CircularProgress, Box } from "@mui/material";
 import ClientLayout from "./components/layouts/ClientLayout";
 import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
-import Cart from "./pages/Cart"; // Đảm bảo đường dẫn đúng
+
+// Lazy load các trang
+const Home = lazy(() => import("./pages/Home"));
+const Shop = lazy(() => import("./pages/Shop"));
+const Cart = lazy(() => import("./pages/Cart"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const MyOrders = lazy(() => import("./pages/MyOrders"));
+const OrderDetail = lazy(() => import("./pages/OrderDetail"));
+const Profile = lazy(() => import("./pages/Profile"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+
+// Import trực tiếp các trang nhỏ
 import ClientLogin from "./pages/ClientLogin";
 import Register from "./pages/Register";
 import PasswordReset from "./pages/PasswordReset";
-import Home from "./pages/Home";
-import Shop from "./pages/Shop";
-import ProductDetail from "./pages/ProductDetail";
-import About from "./pages/About";
-import Checkout from "./pages/Checkout";
 import Payment from "./pages/Payment";
 import BankingInfo from "./pages/BankingInfo";
-import MyOrders from "./pages/MyOrders";
-import OrderDetail from "./pages/OrderDetail";
 import ProductReview from "./pages/ProductReview";
-import Contact from "./pages/Contact";
 import Invoice from "./pages/Invoice";
-import Profile from "./pages/Profile";
 import ReviewDetail from "./pages/ReviewDetail";
-import Wishlist from "./pages/Wishlist";
+
+const LoadingFallback = () => (
+  <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+    <CircularProgress size={60} />
+  </Box>
+);
 const routeConfig = [
   {
     path: "/login",
@@ -136,7 +148,12 @@ const routeConfig = [
 ];
 function App() {
   const routes = useRoutes(routeConfig);
-  return <main>{routes}</main>;
+  useCartSync();
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <main>{routes}</main>
+    </Suspense>
+  );
 }
 
 export default App;

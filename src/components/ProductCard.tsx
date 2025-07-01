@@ -10,19 +10,31 @@ import {
   IconButton,
   Rating,
   Snackbar,
-  Alert
+  Alert,
+  LinearProgress
 } from '@mui/material';
 import WishlistButton from './common/WishlistButton';
 import { 
   ShoppingCart, 
-  Visibility 
+  Visibility,
+  LocalFireDepartment
 } from '@mui/icons-material';
 import { Stack } from '@mui/material';
 import { Link } from 'react-router-dom';
 import type { Product } from '../types/product.type';
 
 interface ProductCardProps {
-  product: Product;
+  product: Product & {
+    isFlashSale?: boolean;
+    originalPrice?: number;
+    flashSaleItemId?: number;
+    flashSaleData?: {
+      sold_quantity: number;
+      remaining_quantity: number;
+      sold_percentage: number;
+      discount_percentage: number;
+    };
+  };
   onRemoveFromWishlist?: (productId: number) => void;
 }
 
@@ -52,7 +64,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
   };
   
   const displayPrice = getDisplayPrice();
-  const originalPrice = displayPrice * 1.2; // Giả lập giá gốc
+  const originalPrice = product.originalPrice || displayPrice * 1.2; // Sử dụng giá gốc từ props hoặc giả lập
 
   // Format giá tiền
   const formatPrice = (price: number) => {
@@ -81,43 +93,62 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
     <Card
       sx={{
         width: '100%',
-        height: 480,
-        minHeight: 480,
-        maxHeight: 480,
+        height: product.isFlashSale ? 380 : 480,
+        minHeight: product.isFlashSale ? 380 : 480,
+        maxHeight: product.isFlashSale ? 380 : 480,
         display: 'flex',
         flexDirection: 'column',
         flex: 1,
         position: 'relative',
-        borderRadius: 4,
+        borderRadius: product.isFlashSale ? 3 : 4,
         boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         overflow: 'hidden',
         background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
         border: '1px solid rgba(0,0,0,0.04)',
         '&:hover': {
-          transform: 'translateY(-12px) scale(1.02)',
+          transform: product.isFlashSale ? 'translateY(-8px) scale(1.01)' : 'translateY(-12px) scale(1.02)',
           boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-          borderColor: 'rgba(130, 202, 157, 0.3)'
+          borderColor: product.isFlashSale ? 'rgba(255, 71, 87, 0.3)' : 'rgba(130, 202, 157, 0.3)'
         }
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Discount Badge */}
-      <Chip
-        label="-17%"
-        sx={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          zIndex: 3,
-          fontWeight: 'bold',
-          fontSize: '0.75rem',
-          background: 'linear-gradient(45deg, #ff6b6b, #ff5252)',
-          color: 'white',
-          boxShadow: '0 4px 12px rgba(255, 107, 107, 0.4)'
-        }}
-      />
+      {/* Flash Sale Badge */}
+      {product.isFlashSale ? (
+        <Chip
+          icon={<LocalFireDepartment sx={{ fontSize: '16px !important' }} />}
+          label={`🔥 -${product.flashSaleData?.discount_percentage || 17}%`}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            zIndex: 3,
+            fontWeight: 'bold',
+            fontSize: '0.75rem',
+            background: 'linear-gradient(45deg, #ff4757 30%, #ff3742 90%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(255, 71, 87, 0.6)',
+            animation: 'pulse 2s infinite'
+          }}
+        />
+      ) : (
+        <Chip
+          label="-17%"
+          sx={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            zIndex: 3,
+            fontWeight: 'bold',
+            fontSize: '0.75rem',
+            background: 'linear-gradient(45deg, #ff6b6b, #ff5252)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(255, 107, 107, 0.4)'
+          }}
+        />
+      )}
 
       {/* Wishlist Button */}
       <Box
@@ -140,10 +171,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
       </Box>
 
       {/* Product Image */}
-      <Box sx={{ position: 'relative', overflow: 'hidden', height: 240 }}>
+      <Box sx={{ position: 'relative', overflow: 'hidden', height: product.isFlashSale ? 180 : 240 }}>
         <CardMedia
           component="img"
-          height="240"
+          height={product.isFlashSale ? "180" : "240"}
           image={getImageUrl(product.thumbnail)}
           alt={product.name}
           sx={{
@@ -197,10 +228,47 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
             </Button>
           </Stack>
         </Box>
+        
+        {/* Flash Sale Progress Bar */}
+        {product.isFlashSale && product.flashSaleData && (
+          <Box sx={{
+            position: 'absolute',
+            bottom: 8,
+            left: 8,
+            right: 8,
+            zIndex: 3,
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 2,
+            p: 1.5,
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+          }}>            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+              <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem', fontWeight: 600 }}>
+                Đã bán {product.flashSaleData.sold_quantity}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem', fontWeight: 600 }}>
+                Còn {product.flashSaleData.remaining_quantity}
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={product.flashSaleData.sold_percentage}
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: '#ecf0f1',
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: '#ff4757',
+                  borderRadius: 3
+                }
+              }}
+            />
+          </Box>
+        )}
       </Box>
 
       {/* Product Info */}
-      <CardContent sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column' }}>
+      <CardContent sx={{ flexGrow: 1, p: product.isFlashSale ? 2 : 3, display: 'flex', flexDirection: 'column' }}>
         <Typography
           variant="h6"
           component={Link}
@@ -209,17 +277,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
             textDecoration: 'none',
             color: '#2c3e50',
             fontWeight: 700,
-            fontSize: '1.1rem',
+            fontSize: product.isFlashSale ? '0.9rem' : '1.1rem',
             lineHeight: 1.4,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            mb: 2,
-            minHeight: '2.8rem',
+            mb: product.isFlashSale ? 1.5 : 2,
+            minHeight: product.isFlashSale ? '2.4rem' : '2.8rem',
             transition: 'color 0.3s ease',
             '&:hover': {
-              color: '#82ca9d'
+              color: product.isFlashSale ? '#ff4757' : '#82ca9d'
             }
           }}
         >
@@ -227,21 +295,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
         </Typography>
 
         {/* Rating */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Rating value={4.5} precision={0.5} size="small" readOnly sx={{ color: '#ffc658' }} />
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontWeight: 500 }}>
-            (128 đánh giá)
-          </Typography>
-        </Box>
+        {!product.isFlashSale && (
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Rating value={4.5} precision={0.5} size="small" readOnly sx={{ color: '#ffc658' }} />
+            <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontWeight: 500 }}>
+              (128 đánh giá)
+            </Typography>
+          </Box>
+        )}
 
         {/* Price */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, mt: 'auto' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: product.isFlashSale ? 2 : 3, mt: 'auto' }}>
           <Typography
             variant="h5"
             sx={{ 
               fontWeight: 800, 
-              fontSize: '1.3rem',
-              background: 'linear-gradient(45deg, #82ca9d, #6bb77b)',
+              fontSize: product.isFlashSale ? '1.1rem' : '1.3rem',
+              background: product.isFlashSale 
+                ? 'linear-gradient(45deg, #ff4757, #ff3742)'
+                : 'linear-gradient(45deg, #82ca9d, #6bb77b)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
@@ -278,10 +350,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
             }
             
             try {
-              // Import cartService
               const { cartService } = await import('../services/cart.service');
-              await cartService.addToCart(product.id, null, 1);
-              showSnackbar('Đã thêm vào giỏ hàng!', 'success');
+              const flashPrice = product.isFlashSale ? product.price : undefined;
+              await cartService.addToCart(product.id, null, 1, flashPrice);
+              showSnackbar(product.isFlashSale ? 'Đã thêm flash sale vào giỏ hàng!' : 'Đã thêm vào giỏ hàng!', 'success');
             } catch (error: any) {
               console.error('Error adding to cart:', error);
               if (error.response?.status === 401) {
@@ -298,30 +370,38 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
           }}
           sx={{
             background: hasStock() && displayPrice > 0 
-              ? 'linear-gradient(45deg, #82ca9d 30%, #6bb77b 90%)'
+              ? (product.isFlashSale 
+                  ? 'linear-gradient(45deg, #ff4757 30%, #ff3742 90%)'
+                  : 'linear-gradient(45deg, #82ca9d 30%, #6bb77b 90%)')
               : '#ccc',
             color: 'white',
-            py: 1.5,
+            py: product.isFlashSale ? 1.2 : 1.5,
             borderRadius: 3,
             fontWeight: 700,
             fontSize: '0.95rem',
             textTransform: 'none',
             boxShadow: hasStock() && displayPrice > 0 
-              ? '0 6px 20px rgba(130, 202, 157, 0.4)'
+              ? (product.isFlashSale 
+                  ? '0 6px 20px rgba(255, 71, 87, 0.4)'
+                  : '0 6px 20px rgba(130, 202, 157, 0.4)')
               : 'none',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
               background: hasStock() && displayPrice > 0 
-                ? 'linear-gradient(45deg, #6bb77b 30%, #5aa068 90%)'
+                ? (product.isFlashSale 
+                    ? 'linear-gradient(45deg, #ff3742 30%, #e63946 90%)'
+                    : 'linear-gradient(45deg, #6bb77b 30%, #5aa068 90%)')
                 : '#ccc',
               transform: hasStock() && displayPrice > 0 ? 'translateY(-2px)' : 'none',
               boxShadow: hasStock() && displayPrice > 0 
-                ? '0 8px 25px rgba(130, 202, 157, 0.5)'
+                ? (product.isFlashSale 
+                    ? '0 8px 25px rgba(255, 71, 87, 0.5)'
+                    : '0 8px 25px rgba(130, 202, 157, 0.5)')
                 : 'none'
             }
           }}
         >
-          {!hasStock() ? 'Hết hàng' : displayPrice === 0 ? 'Liên hệ' : 'Thêm vào giỏ'}
+          {!hasStock() ? 'Hết hàng' : displayPrice === 0 ? 'Liên hệ' : (product.isFlashSale ? '⚡ Mua ngay' : 'Thêm vào giỏ')}
         </Button>
       </CardContent>
       

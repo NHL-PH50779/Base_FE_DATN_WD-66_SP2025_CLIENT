@@ -31,31 +31,21 @@ const WishlistButton: React.FC<WishlistButtonProps> = ({
   };
 
   useEffect(() => {
-    // Kiểm tra local trước, sau đó sync với server
-    setIsFavorited(wishlistUtils.isInLocalWishlist(productId));
     checkWishlistStatus();
   }, [productId]);
 
   const checkWishlistStatus = async () => {
     if (!authService.isAuthenticated()) {
-      // Nếu chưa đăng nhập, chỉ dùng local
-      setIsFavorited(wishlistUtils.isInLocalWishlist(productId));
+      setIsFavorited(false);
       return;
     }
     
     try {
       const response = await wishlistService.checkWishlist(productId);
-      const serverStatus = response.is_favorited || false;
-      setIsFavorited(serverStatus);
-      
-      // Sync local với server
-      if (serverStatus !== wishlistUtils.isInLocalWishlist(productId)) {
-        wishlistUtils.toggleLocalWishlist(productId);
-      }
+      setIsFavorited(response.is_favorited || false);
     } catch (error) {
       console.error('Error checking wishlist status:', error);
-      // Fallback - dùng local
-      setIsFavorited(wishlistUtils.isInLocalWishlist(productId));
+      setIsFavorited(false);
     }
   };
 
@@ -73,31 +63,19 @@ const WishlistButton: React.FC<WishlistButtonProps> = ({
 
     setLoading(true);
     try {
-      // Cập nhật local trước
-      const newStatus = wishlistUtils.toggleLocalWishlist(productId);
-      setIsFavorited(newStatus);
+      const response = await wishlistService.toggleWishlist(productId);
+      setIsFavorited(response.is_favorited);
       
-      if (authService.isAuthenticated()) {
-        // Nếu đã đăng nhập, sync với server
-        const response = await wishlistService.toggleWishlist(productId);
-        
-        if (newStatus) {
-          showSnackbar('Thêm vào danh sách yêu thích!', 'success');
-        } else {
-          showSnackbar('Đã xóa khỏi danh sách yêu thích!', 'success');
-          
-          // Nếu đang ở trang wishlist và xóa sản phẩm, gọi callback
-          if (isWishlistPage && onRemoveFromWishlist) {
-            setTimeout(() => {
-              onRemoveFromWishlist(productId);
-            }, 500); // Delay để hiện thị thông báo trước
-          }
-        }
+      // Dispatch custom event để thông báo thay đổi
+      window.dispatchEvent(new CustomEvent('wishlistChanged'));
+      
+      if (response.is_favorited) {
+        showSnackbar('Thêm vào danh sách yêu thích!', 'success');
       } else {
-        showSnackbar(newStatus ? 'Thêm vào yêu thích' : 'Xóa khỏi yêu thích', 'success');
+        showSnackbar('Đã xóa khỏi danh sách yêu thích!', 'success');
         
-        // Xử lý cho trường hợp chưa đăng nhập
-        if (!newStatus && isWishlistPage && onRemoveFromWishlist) {
+        // Nếu đang ở trang wishlist và xóa sản phẩm, gọi callback
+        if (isWishlistPage && onRemoveFromWishlist) {
           setTimeout(() => {
             onRemoveFromWishlist(productId);
           }, 500);

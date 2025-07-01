@@ -29,6 +29,9 @@ import PersonIcon from "@mui/icons-material/Person";
 import { categoryService } from "../../services/category.service";
 import { productService } from "../../services/product.service";
 import { authService } from "../../services/auth/auth.service";
+import { cartService } from "../../services/cart.service";
+import { wishlistService } from "../../services/wishlist.service";
+import { useCartStore } from "../../stores/cart.store";
 import type { Product } from "../../types/product.type";
 
 const Header = () => {
@@ -40,6 +43,7 @@ const Header = () => {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showResults, setShowResults] = useState(false);
   const navigate = useNavigate();
+  const { cartCount, wishlistCount, setCartCount, setWishlistCount } = useCartStore();
 
   useEffect(() => {
     fetchCategories();
@@ -321,11 +325,13 @@ const Header = () => {
             <SearchIcon />
           </IconButton>
           
-          <IconButton component={Link} to="/wishlist">
-            <FavoriteBorderIcon />
-          </IconButton>
+          <Badge color="error" badgeContent={wishlistCount > 0 ? wishlistCount : null}>
+            <IconButton component={Link} to="/wishlist">
+              <FavoriteBorderIcon />
+            </IconButton>
+          </Badge>
           
-          <Badge color="secondary" badgeContent={0}>
+          <Badge color="error" badgeContent={cartCount > 0 ? cartCount : null}>
             <Link to="/cart">
               <IconButton>
                 <img src="/cart.svg" alt="cart" width={20} />

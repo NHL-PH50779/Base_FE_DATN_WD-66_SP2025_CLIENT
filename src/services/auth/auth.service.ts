@@ -15,6 +15,9 @@ interface RegisterData {
 interface ProfileData {
   name: string;
   phone?: string;
+  province?: string;
+  district?: string;
+  ward?: string;
   address?: string;
   birth_date?: string;
   gender?: string;

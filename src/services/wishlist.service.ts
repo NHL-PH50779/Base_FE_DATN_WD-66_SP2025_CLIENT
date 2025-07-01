@@ -1,7 +1,4 @@
-import instance from '../apis';
-
-// Cấu hình timeout cho wishlist API
-instance.defaults.timeout = 10000; // 10s thay vì 20s
+import { useCartStore } from '../stores/cart.store';
 
 interface WishlistItem {
   id: number;
@@ -24,49 +21,35 @@ interface WishlistItem {
 }
 
 export const wishlistService = {
-  // Lấy danh sách sản phẩm yêu thích - sử dụng localStorage
   getWishlist: async () => {
     const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
     return { data: wishlist };
   },
 
-  // Toggle sản phẩm yêu thích - sử dụng localStorage
   toggleWishlist: async (productId: number) => {
     const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
     const isWishlisted = wishlist.includes(productId);
     
     let newWishlist;
-    let message;
-    
     if (isWishlisted) {
-      // Remove from wishlist
       newWishlist = wishlist.filter((id: number) => id !== productId);
-      message = 'Đã xóa khỏi yêu thích';
+      useCartStore.getState().decrementWishlist();
     } else {
-      // Add to wishlist
       newWishlist = [...wishlist, productId];
-      message = 'Đã thêm vào yêu thích';
+      useCartStore.getState().incrementWishlist();
     }
     
     localStorage.setItem('wishlist', JSON.stringify(newWishlist));
     
     return {
       success: true,
-      message,
+      message: isWishlisted ? 'Đã xóa khỏi yêu thích' : 'Đã thêm vào yêu thích',
       is_favorited: !isWishlisted
     };
   },
 
-  // Kiểm tra sản phẩm có được yêu thích không - sử dụng localStorage
   checkWishlist: async (productId: number) => {
-    // Không gọi API, sử dụng localStorage
     const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    const isWishlisted = wishlist.includes(productId);
-    
-    return {
-      is_favorited: isWishlisted
-    };
+    return { is_favorited: wishlist.includes(productId) };
   },
-
-
 };

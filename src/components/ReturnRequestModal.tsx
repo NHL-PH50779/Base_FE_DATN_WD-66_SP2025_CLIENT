@@ -43,9 +43,7 @@ const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
       const token = localStorage.getItem('token');
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       
-      await axios.post('http://127.0.0.1:8000/api/return_requests', {
-        user_id: user.id,
-        order_id: orderId,
+      await axios.post(`http://127.0.0.1:8000/api/orders/${orderId}/refund-request`, {
         reason: reason.trim()
       }, {
         headers: {

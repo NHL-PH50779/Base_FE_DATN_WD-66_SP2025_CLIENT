@@ -117,26 +117,45 @@ const MyOrders = () => {
   ];
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(true);
+    
+    // Auto-refresh mỗi 10 giây để cập nhật trạng thái real-time
+    const interval = setInterval(() => {
+      fetchOrders(false); // Không hiển loading khi auto-refresh
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  const fetchOrders = async (showLoadingIndicator = true) => {
+    if (showLoadingIndicator) setLoading(true);
     try {
       const response = await orderService.getMyOrders();
-      console.log('Orders response:', response);
-      setOrders(response.data || []);
+      const newOrders = response.data || [];
+      
+      // Kiểm tra có đơn hàng nào thay đổi trạng thái không
+      if (orders.length > 0) {
+        newOrders.forEach((newOrder: Order) => {
+          const oldOrder = orders.find(o => o.id === newOrder.id);
+          if (oldOrder && oldOrder.order_status_id !== newOrder.order_status_id) {
+            const statusName = orderStatuses[newOrder.order_status_id as keyof typeof orderStatuses]?.label;
+            showSnackbar(`Đơn hàng #${newOrder.id} đã chuyển thành: ${statusName}`, 'success');
+          }
+        });
+      }
+      
+      setOrders(newOrders);
     } catch (error: any) {
       console.error('Error fetching orders:', error);
       if (error.response?.status === 401) {
         showSnackbar('Vui lòng đăng nhập để xem đơn hàng!', 'error');
         navigate('/login');
-      } else {
+      } else if (showLoadingIndicator) {
         showSnackbar('Có lỗi khi tải danh sách đơn hàng!', 'error');
         setOrders([]);
       }
     } finally {
-      setLoading(false);
+      if (showLoadingIndicator) setLoading(false);
     }
   };
 
@@ -163,7 +182,7 @@ const MyOrders = () => {
   };
 
   const canCancelOrder = (order: Order) => {
-    return [1, 2].includes(order.order_status_id); // Chờ xác nhận hoặc Đã xác nhận
+    return order.order_status_id === 1; // Chỉ cho phép hủy khi chờ xác nhận
   };
 
   const canReturnOrder = (order: Order) => {
@@ -255,9 +274,18 @@ const MyOrders = () => {
             >
               Quay lại
             </Button>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#2c3e50' }}>
-              Đơn hàng của tôi
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: '#2c3e50' }}>
+                Đơn hàng của tôi
+              </Typography>
+              <Chip 
+                label="Tự động cập nhật" 
+                size="small" 
+                color="success" 
+                variant="outlined"
+                sx={{ fontSize: '0.7rem' }}
+              />
+            </Box>
           </Box>
         </Container>
       </Box>

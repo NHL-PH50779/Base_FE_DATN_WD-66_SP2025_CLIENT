@@ -50,58 +50,48 @@ export const orderService = {
     return response.data;
   },
 
-  // Confirm received order - Cập nhật cả trạng thái đơn hàng và thanh toán
+  // Confirm received order - Sử dụng API mới
   confirmReceived: async (orderId: number) => {
-    console.log('Confirming order received (mock):', orderId);
-    
     try {
-      // Thử cập nhật trạng thái đơn hàng và thanh toán qua API
-      await Promise.all([
-        // Cập nhật trạng thái đơn hàng thành "Hoàn thành"
-        axios.put(`${API_BASE_URL}/orders/${orderId}`, {
-          order_status_id: 5
-        }),
-        // Cập nhật trạng thái thanh toán thành "Đã thanh toán"
-        axios.put(`${API_BASE_URL}/orders/${orderId}/payment-status`, {
-          payment_status_id: 2
-        })
-      ]);
+      const response = await axios.put(`${API_BASE_URL}/orders/${orderId}/complete`);
+      return response.data;
     } catch (error) {
-      console.log('API not available, using mock update');
+      console.error('Error confirming order:', error);
+      throw error;
     }
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Gửi thông báo real-time cho admin
-    const adminNotification = {
-      id: Date.now(),
-      type: 'order_completed',
-      orderId: orderId,
-      message: `Đơn hàng #${orderId} đã được khách hàng xác nhận nhận hàng và thanh toán`,
-      timestamp: new Date().toISOString(),
-      read: false
-    };
-    
-    const existingNotifications = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-    localStorage.setItem('admin_notifications', JSON.stringify([adminNotification, ...existingNotifications]));
-    
-    // Mock thành công
-    return {
-      success: true,
-      message: 'Đã xác nhận nhận hàng và cập nhật thanh toán thành công!',
-      data: {
-        order_id: orderId,
-        order_status: 'completed',
-        payment_status: 'paid',
-        confirmed_at: new Date().toISOString()
-      }
-    };
+  },
+
+  // Yêu cầu hoàn hàng
+  requestRefund: async (orderId: number, reason: string) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/orders/${orderId}/refund-request`, {
+        reason: reason
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error requesting refund:', error);
+      throw error;
+    }
   },
 
   // Update order status - PUT /api/orders/{id}/status
   updateOrderStatus: async (orderId: number, statusId: number) => {
     const response = await axios.put(`${API_BASE_URL}/orders/${orderId}/status`, { status_id: statusId });
+    return response.data;
+  },
+
+  // Admin: Tự động hoàn thành đơn hàng
+  autoCompleteOrders: async () => {
+    const response = await axios.post(`${API_BASE_URL}/admin/orders/auto-complete`);
+    return response.data;
+  },
+
+  // Admin: Xử lý yêu cầu hoàn hàng
+  processRefund: async (orderId: number, approve: boolean, adminNote?: string) => {
+    const response = await axios.put(`${API_BASE_URL}/admin/orders/${orderId}/process-refund`, {
+      approve: approve,
+      admin_note: adminNote
+    });
     return response.data;
   }
 };

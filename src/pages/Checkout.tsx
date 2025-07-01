@@ -86,21 +86,36 @@ const Checkout = () => {
     loadUserInfo();
   }, []);
 
+  // Refresh user info when page becomes visible (after updating profile)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadUserInfo();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const loadUserInfo = () => {
     const user = authService.getUser();
+    console.log('Loading user info for checkout:', user);
     if (user) {
       setCustomerInfo({
         name: user.name || '',
         phone: user.phone || '',
         email: user.email || ''
       });
-      // Load address if available
-      if (user.address) {
-        setShippingInfo(prev => ({
-          ...prev,
-          address: user.address
-        }));
-      }
+      // Load full address info if available
+      const addressInfo = {
+        province: user.province || '',
+        district: user.district || '',
+        ward: user.ward || '',
+        address: user.address || '',
+        note: ''
+      };
+      console.log('Setting shipping info:', addressInfo);
+      setShippingInfo(addressInfo);
     }
   };
 

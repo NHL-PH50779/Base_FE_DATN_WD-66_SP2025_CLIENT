@@ -1,4 +1,5 @@
 import instance from "../apis";
+import { useCartStore } from "../stores/cart.store";
 
 
 
@@ -31,13 +32,24 @@ export const cartService = {
   },
 
   // Thêm vào giỏ hàng
-  addToCart: async (productId: number, productVariantId: number | null, quantity: number) => {
+  addToCart: async (productId: number, productVariantId: number | null, quantity: number, flashSalePrice?: number) => {
     try {
-      const response = await instance.post("/cart", {
+      const payload = {
         product_id: productId,
         product_variant_id: productVariantId,
         quantity
-      });
+      };
+      
+      // Chỉ thêm price nếu có flash sale
+      if (flashSalePrice) {
+        payload.price = flashSalePrice;
+      }
+      
+      console.log('Adding to cart with payload:', payload); // Debug
+      
+      const response = await instance.post("/cart", payload);
+      // Cập nhật store
+      useCartStore.getState().incrementCart();
       return parseResponse(response);
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -62,6 +74,8 @@ export const cartService = {
   removeFromCart: async (cartItemId: number) => {
     try {
       const response = await instance.delete(`/cart/${cartItemId}`);
+      // Cập nhật store
+      useCartStore.getState().decrementCart();
       return parseResponse(response);
     } catch (error) {
       console.error("Error removing from cart:", error);

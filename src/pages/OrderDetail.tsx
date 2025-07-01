@@ -129,6 +129,13 @@ const OrderDetail = () => {
   useEffect(() => {
     if (id) {
       fetchOrderDetail(parseInt(id));
+      
+      // Auto-refresh mỗi 15 giây để cập nhật trạng thái
+      const interval = setInterval(() => {
+        fetchOrderDetail(parseInt(id));
+      }, 15000);
+      
+      return () => clearInterval(interval);
     }
   }, [id]);
 
@@ -260,7 +267,7 @@ const OrderDetail = () => {
   };
 
   const canCancelOrder = (order: Order) => {
-    return [1, 2].includes(order.order_status_id);
+    return order.order_status_id === 1; // Chỉ cho phép hủy khi chờ xác nhận
   };
 
   const canConfirmReceived = (order: Order) => {

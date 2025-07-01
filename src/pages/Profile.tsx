@@ -16,7 +16,7 @@ import {
   Tab,
   Stack
 } from '@mui/material';
-import { Person, Lock } from '@mui/icons-material';
+import { Person, Lock, LocationOn } from '@mui/icons-material';
 import { authService } from '../services/auth/auth.service';
 
 interface TabPanelProps {
@@ -44,6 +44,9 @@ const Profile = () => {
     name: '',
     email: '',
     phone: '',
+    province: '',
+    district: '',
+    ward: '',
     address: '',
     birth_date: '',
     gender: ''
@@ -107,10 +110,20 @@ const Profile = () => {
   useEffect(() => {
     const user = authService.getUser();
     if (user) {
+      console.log('Loading user data in profile:', user);
+      console.log('User address fields:', {
+        province: user.province,
+        district: user.district, 
+        ward: user.ward,
+        address: user.address
+      });
       setProfileData({
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
+        province: user.province || '',
+        district: user.district || '',
+        ward: user.ward || '',
         address: user.address || '',
         birth_date: user.birth_date || '',
         gender: user.gender || ''
@@ -124,13 +137,33 @@ const Profile = () => {
       setError('Họ tên không được để trống');
       return;
     }
+    if (!profileData.province.trim() || !profileData.district.trim() || !profileData.ward.trim() || !profileData.address.trim()) {
+      setError('Vui lòng điền đầy đủ thông tin địa chỉ');
+      return;
+    }
 
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      await authService.updateProfile(profileData);
+      console.log('Updating profile with data:', profileData);
+      const response = await authService.updateProfile(profileData);
+      console.log('Profile update response:', response);
+      
+      // Refresh user data in localStorage
+      if (response.user) {
+        console.log('New user data from server:', response.user);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        console.log('Updated localStorage user data');
+      } else {
+        console.log('No user data in response, updating manually');
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = { ...currentUser, ...profileData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        console.log('Manually updated user data:', updatedUser);
+      }
+      
       setSuccess('Cập nhật thông tin thành công!');
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
@@ -194,9 +227,15 @@ const Profile = () => {
           <TabPanel value={tabValue} index={0}>
             <form onSubmit={handleProfileSubmit}>
               <Stack spacing={3}>
+                {/* Thông tin cá nhân */}
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Person sx={{ color: '#2196F3' }} />
+                  Thông tin cá nhân
+                </Typography>
+                
                 <TextField
                   fullWidth
-                  label="Họ tên"
+                  label="Họ tên đầy đủ *"
                   value={profileData.name}
                   onChange={(e) => setProfileData({...profileData, name: e.target.value})}
                   required
@@ -206,16 +245,20 @@ const Profile = () => {
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
                     fullWidth
-                    label="Email"
-                    value={profileData.email}
-                    disabled
+                    label="Số điện thoại *"
+                    value={profileData.phone}
+                    onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                    required
+                    helperText="Để liên hệ giao hàng"
                     sx={inputStyle}
                   />
                   <TextField
                     fullWidth
-                    label="Số điện thoại"
-                    value={profileData.phone}
-                    onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                    label="Email"
+                    type="email"
+                    value={profileData.email}
+                    disabled
+                    helperText="Email không thể thay đổi"
                     sx={inputStyle}
                   />
                 </Box>
@@ -236,24 +279,59 @@ const Profile = () => {
                       value={profileData.gender || ''}
                       onChange={(e) => setProfileData({...profileData, gender: e.target.value})}
                       sx={{ height: '56px', fontSize: '16px' }}
-                      displayEmpty
+                      label="Giới tính"
                     >
-                      <MenuItem value="">Chọn giới tính</MenuItem>
                       <MenuItem value="male">Nam</MenuItem>
                       <MenuItem value="female">Nữ</MenuItem>
                       <MenuItem value="other">Khác</MenuItem>
                     </Select>
                   </FormControl>
                 </Box>
+
+                {/* Địa chỉ giao hàng */}
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50', display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+                  <LocationOn sx={{ color: '#4CAF50' }} />
+                  Địa chỉ giao hàng
+                </Typography>
                 
                 <TextField
                   fullWidth
-                  label="Địa chỉ"
-                  multiline
-                  rows={3}
+                  label="Tỉnh/Thành phố *"
+                  value={profileData.province}
+                  onChange={(e) => setProfileData({...profileData, province: e.target.value})}
+                  placeholder="Nhập tỉnh/thành phố"
+                  required
+                  sx={inputStyle}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Quận/Huyện *"
+                  value={profileData.district}
+                  onChange={(e) => setProfileData({...profileData, district: e.target.value})}
+                  placeholder="Nhập quận/huyện"
+                  required
+                  sx={inputStyle}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Phường/Xã *"
+                  value={profileData.ward}
+                  onChange={(e) => setProfileData({...profileData, ward: e.target.value})}
+                  placeholder="Nhập phường/xã"
+                  required
+                  sx={inputStyle}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Địa chỉ chi tiết *"
                   value={profileData.address}
                   onChange={(e) => setProfileData({...profileData, address: e.target.value})}
-                  sx={textareaStyle}
+                  placeholder="Số nhà, tên đường, tòa nhà..."
+                  required
+                  sx={inputStyle}
                 />
                 
                 <Button
