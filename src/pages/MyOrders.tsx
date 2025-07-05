@@ -182,7 +182,9 @@ const MyOrders = () => {
   };
 
   const canCancelOrder = (order: Order) => {
-    return order.order_status_id === 1; // Chỉ cho phép hủy khi chờ xác nhận
+    // Cho phép hủy khi: Chờ xác nhận (1) hoặc Đã xác nhận (2)
+    // Đặc biệt cho VNPay: cho phép hủy ngay cả khi đã thanh toán
+    return order.order_status_id === 1 || order.order_status_id === 2;
   };
 
   const canReturnOrder = (order: Order) => {

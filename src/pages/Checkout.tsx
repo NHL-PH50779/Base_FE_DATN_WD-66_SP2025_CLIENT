@@ -30,6 +30,7 @@ import { cartService } from '../services/cart.service';
 import { orderService } from '../services/order.service';
 import { authService } from '../services/auth/auth.service';
 import { voucherService } from '../services/voucher.service';
+import { vnpayService } from '../services/vnpay.service';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LocationOn,
@@ -279,7 +280,7 @@ const Checkout = () => {
         coupon_code: appliedVoucher?.code || null,
         coupon_discount: couponDiscount,
         items: cartItems.map(item => ({
-          id: item.id,
+          product_id: item.id,
           quantity: item.quantity,
           price: item.price
         }))
@@ -289,9 +290,26 @@ const Checkout = () => {
       const response = await orderService.createOrder(orderData);
       
       if (paymentMethod === 'vnpay') {
-        // TODO: Implement VNPay integration
-        showSnackbar('Đặt hàng thành công! Đang chuyển hướng đến VNPay...', 'success');
-        // window.location.href = response.data.vnpay_url;
+        // Tích hợp VNPay
+        try {
+          const vnpayResponse = await vnpayService.createPayment({
+            order_id: response.data.order.id,
+            amount: calculateTotal(),
+            order_info: `Thanh toán đơn hàng #${response.data.order.id}`
+          });
+          
+          if (vnpayResponse.success && vnpayResponse.payment_url) {
+            showSnackbar('Đặt hàng thành công! Đang chuyển hướng đến VNPay...', 'success');
+            setTimeout(() => {
+              vnpayService.redirectToVNPay(vnpayResponse.payment_url!);
+            }, 1500);
+          } else {
+            throw new Error(vnpayResponse.message || 'Lỗi tạo thanh toán VNPay');
+          }
+        } catch (vnpayError: any) {
+          showSnackbar('Lỗi VNPay: ' + vnpayError.message, 'error');
+          return;
+        }
       } else {
         showSnackbar('Đặt hàng thành công! Bạn sẽ thanh toán khi nhận hàng.', 'success');
       }

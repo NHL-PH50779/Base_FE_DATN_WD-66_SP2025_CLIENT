@@ -28,6 +28,8 @@ import BankingInfo from "./pages/BankingInfo";
 import ProductReview from "./pages/ProductReview";
 import Invoice from "./pages/Invoice";
 import ReviewDetail from "./pages/ReviewDetail";
+import VNPayReturn from "./pages/VNPayReturn";
+const Wallet = lazy(() => import("./pages/Wallet"));
 
 const LoadingFallback = () => (
   <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
@@ -110,6 +112,14 @@ const routeConfig = [
       {
         path: "wishlist",
         element: <Wishlist />,
+      },
+      {
+        path: "vnpay-return",
+        element: <VNPayReturn />,
+      },
+      {
+        path: "wallet",
+        element: <Wallet />,
       },
     ],
   },
