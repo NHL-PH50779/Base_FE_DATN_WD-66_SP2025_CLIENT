@@ -185,6 +185,10 @@ const MyOrders = () => {
     return order.order_status_id === 1; // Chỉ cho phép hủy khi chờ xác nhận
   };
 
+  const canRequestCancelVnpay = (order: any) => {
+    return order.is_vnpay && order.status === 'success' && !order.cancel_requested;
+  };
+
   const canReturnOrder = (order: Order) => {
     return order.order_status_id === 4; // Đã giao hàng
   };
@@ -249,6 +253,17 @@ const MyOrders = () => {
       console.error('Error confirming received:', error);
       const errorMessage = error.message || error.response?.data?.message || 'Có lỗi xảy ra khi xác nhận nhận hàng!';
       showSnackbar(errorMessage, 'error');
+    }
+  };
+
+  const handleRequestCancelVnpay = async (orderId: number) => {
+    try {
+      await orderService.requestCancelVnpay(orderId);
+      showSnackbar('Đã gửi yêu cầu hủy đơn hàng!', 'success');
+      fetchOrders();
+    } catch (error: any) {
+      console.error('Error requesting cancel:', error);
+      showSnackbar(error.response?.data?.message || 'Có lỗi xảy ra!', 'error');
     }
   };
 
@@ -421,6 +436,26 @@ const MyOrders = () => {
                               >
                                 Hủy
                               </Button>
+                            )}
+                            
+                            {canRequestCancelVnpay(order) && (
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                color="warning"
+                                onClick={() => handleRequestCancelVnpay(order.id)}
+                              >
+                                Yêu cầu hủy
+                              </Button>
+                            )}
+                            
+                            {order.cancel_requested && (
+                              <Chip
+                                label="Đang chờ duyệt hủy"
+                                size="small"
+                                color="warning"
+                                variant="outlined"
+                              />
                             )}
                           </Stack>
                         </TableCell>

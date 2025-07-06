@@ -74,6 +74,28 @@ export const orderService = {
     }
   },
 
+  // Yêu cầu hủy đơn VNPay
+  requestCancelVnpay: async (orderId: number) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/orders/${orderId}/cancel-request`);
+      return response.data;
+    } catch (error) {
+      console.error('Error requesting cancel VNPay:', error);
+      throw error;
+    }
+  },
+
+  // Lấy thông tin ví
+  getWallet: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/wallet`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting wallet:', error);
+      throw error;
+    }
+  },
+
   // Update order status - PUT /api/orders/{id}/status
   updateOrderStatus: async (orderId: number, statusId: number) => {
     const response = await axios.put(`${API_BASE_URL}/orders/${orderId}/status`, { status_id: statusId });

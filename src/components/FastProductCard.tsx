@@ -59,11 +59,8 @@ const FastProductCard: React.FC<Props> = memo(({ product }) => {
   }, []);
 
   const hasStock = useCallback(() => {
-    if (product.variants?.length > 0) {
-      return product.variants.some(v => v.stock > 0);
-    }
-    return true;
-  }, [product.variants]);
+    return true; // Luôn cho phép thêm vào giỏ hàng
+  }, []);
 
   const handleAddToCart = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -219,17 +216,17 @@ const FastProductCard: React.FC<Props> = memo(({ product }) => {
           fullWidth
           variant="contained"
           startIcon={<ShoppingCart />}
-          disabled={!hasStock() || displayPrice === 0}
+          disabled={displayPrice === 0}
           onClick={handleAddToCart}
           size="small"
           sx={{
-            bgcolor: hasStock() && displayPrice > 0 ? 'primary.main' : 'grey.400',
+            bgcolor: displayPrice > 0 ? 'primary.main' : 'grey.400',
             '&:hover': {
-              bgcolor: hasStock() && displayPrice > 0 ? 'primary.dark' : 'grey.400'
+              bgcolor: displayPrice > 0 ? 'primary.dark' : 'grey.400'
             }
           }}
         >
-          {!hasStock() ? 'Hết hàng' : displayPrice === 0 ? 'Liên hệ' : 'Thêm vào giỏ'}
+          {displayPrice === 0 ? 'Liên hệ' : 'Thêm vào giỏ'}
         </Button>
       </CardContent>
       

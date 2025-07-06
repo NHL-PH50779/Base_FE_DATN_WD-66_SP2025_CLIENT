@@ -83,10 +83,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
   
   // Kiểm tra có tồn kho không
   const hasStock = () => {
-    if (product.variants && product.variants.length > 0) {
-      return product.variants.some(v => v.stock > 0);
-    }
-    return true; // Nếu không có variants thì mặc định là có hàng
+    return true; // Luôn cho phép thêm vào giỏ hàng
   };
 
   return (
@@ -339,8 +336,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
           fullWidth
           variant="contained"
           startIcon={<ShoppingCart />}
-          disabled={!hasStock() || displayPrice === 0}
+          disabled={displayPrice === 0}
           onClick={async () => {
+            
             // Kiểm tra đăng nhập
             const token = localStorage.getItem('token');
             if (!token) {
@@ -369,39 +367,43 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
             }
           }}
           sx={{
-            background: hasStock() && displayPrice > 0 
+            background: displayPrice > 0 
               ? (product.isFlashSale 
                   ? 'linear-gradient(45deg, #ff4757 30%, #ff3742 90%)'
                   : 'linear-gradient(45deg, #82ca9d 30%, #6bb77b 90%)')
-              : '#ccc',
+              : '#bbb',
             color: 'white',
             py: product.isFlashSale ? 1.2 : 1.5,
             borderRadius: 3,
             fontWeight: 700,
             fontSize: '0.95rem',
             textTransform: 'none',
-            boxShadow: hasStock() && displayPrice > 0 
+            boxShadow: displayPrice > 0 
               ? (product.isFlashSale 
                   ? '0 6px 20px rgba(255, 71, 87, 0.4)'
                   : '0 6px 20px rgba(130, 202, 157, 0.4)')
               : 'none',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              background: hasStock() && displayPrice > 0 
+              background: displayPrice > 0 
                 ? (product.isFlashSale 
                     ? 'linear-gradient(45deg, #ff3742 30%, #e63946 90%)'
                     : 'linear-gradient(45deg, #6bb77b 30%, #5aa068 90%)')
-                : '#ccc',
-              transform: hasStock() && displayPrice > 0 ? 'translateY(-2px)' : 'none',
-              boxShadow: hasStock() && displayPrice > 0 
+                : '#bbb',
+              transform: displayPrice > 0 ? 'translateY(-2px)' : 'none',
+              boxShadow: displayPrice > 0 
                 ? (product.isFlashSale 
                     ? '0 8px 25px rgba(255, 71, 87, 0.5)'
                     : '0 8px 25px rgba(130, 202, 157, 0.5)')
                 : 'none'
+            },
+            '&:disabled': {
+              background: '#bbb',
+              color: 'white'
             }
           }}
         >
-          {!hasStock() ? 'Hết hàng' : displayPrice === 0 ? 'Liên hệ' : (product.isFlashSale ? '⚡ Mua ngay' : 'Thêm vào giỏ')}
+          {displayPrice === 0 ? 'Liên hệ' : (product.isFlashSale ? '⚡ Mua ngay' : 'Thêm vào giỏ')}
         </Button>
       </CardContent>
       

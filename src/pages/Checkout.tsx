@@ -30,6 +30,8 @@ import { cartService } from '../services/cart.service';
 import { orderService } from '../services/order.service';
 import { authService } from '../services/auth/auth.service';
 import { voucherService } from '../services/voucher.service';
+import { paymentService } from '../services/payment.service';
+import { vnpayService } from '../services/vnpay.service';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LocationOn,
@@ -254,44 +256,58 @@ const Checkout = () => {
   const handleSubmitOrder = async () => {
     if (isSubmitting) return;
     
+    // Validate required fields
+    if (!customerInfo.name || !customerInfo.phone || !shippingInfo.province || !shippingInfo.district || !shippingInfo.ward || !shippingInfo.address) {
+      showSnackbar('Vui lòng điền đầy đủ thông tin bắt buộc!', 'error');
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      showSnackbar('Giỏ hàng trống!', 'error');
+      return;
+    }
+
+    const orderData = {
+      name: customerInfo.name,
+      phone: customerInfo.phone,
+      email: customerInfo.email,
+      address: `${shippingInfo.address}, ${shippingInfo.ward}, ${shippingInfo.district}, ${shippingInfo.province}`,
+      note: shippingInfo.note,
+      payment_method: paymentMethod,
+      total: calculateTotal(),
+      coupon_code: appliedVoucher?.code || null,
+      coupon_discount: couponDiscount,
+      items: cartItems.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price
+      }))
+    };
+    
+    console.log('Sending order data:', JSON.stringify(orderData, null, 2));
+    
     try {
-      // Validate required fields
-      if (!customerInfo.name || !customerInfo.phone || !shippingInfo.province || !shippingInfo.district || !shippingInfo.ward || !shippingInfo.address) {
-        showSnackbar('Vui lòng điền đầy đủ thông tin bắt buộc!', 'error');
-        return;
-      }
-
-      if (cartItems.length === 0) {
-        showSnackbar('Giỏ hàng trống!', 'error');
-        return;
-      }
-
       setIsSubmitting(true);
-
-      const orderData = {
-        name: customerInfo.name,
-        phone: customerInfo.phone,
-        email: customerInfo.email,
-        address: `${shippingInfo.address}, ${shippingInfo.ward}, ${shippingInfo.district}, ${shippingInfo.province}`,
-        note: shippingInfo.note,
-        payment_method: paymentMethod,
-        total: calculateTotal(),
-        coupon_code: appliedVoucher?.code || null,
-        coupon_discount: couponDiscount,
-        items: cartItems.map(item => ({
-          id: item.id,
-          quantity: item.quantity,
-          price: item.price
-        }))
-      };
       
       // Gọi API tạo đơn hàng
       const response = await orderService.createOrder(orderData);
       
       if (paymentMethod === 'vnpay') {
-        // TODO: Implement VNPay integration
-        showSnackbar('Đặt hàng thành công! Đang chuyển hướng đến VNPay...', 'success');
-        // window.location.href = response.data.vnpay_url;
+        // 🧩 1. Tạo URL thanh toán VNPay
+        const vnpayResponse = await vnpayService.createPayment({
+          order_id: response.data.order.id,
+          amount: calculateTotal(),
+          order_desc: `Thanh toan don hang #${response.data.order.id}`
+        });
+        
+        if (vnpayResponse.success) {
+          showSnackbar('Đặt hàng thành công! Đang chuyển hướng đến VNPay...', 'success');
+          // ⏩ Redirect đến VNPay
+          window.location.href = vnpayResponse.payment_url;
+          return;
+        } else {
+          throw new Error('Không thể tạo URL thanh toán VNPay');
+        }
       } else {
         showSnackbar('Đặt hàng thành công! Bạn sẽ thanh toán khi nhận hàng.', 'success');
       }
@@ -312,6 +328,7 @@ const Checkout = () => {
       
     } catch (error: any) {
       console.error('Order error:', error);
+      console.log('Order data sent:', JSON.stringify(orderData, null, 2));
       if (error.response?.status === 401) {
         showSnackbar('Vui lòng đăng nhập để đặt hàng!', 'error');
         navigate('/login');

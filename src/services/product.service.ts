@@ -19,7 +19,7 @@ const parseResponse = (response: any) => {
 export const productService = {
   getAllProducts: async () => {
     try {
-      const response = await instance.get('/products', { timeout: 10000 });
+      const response = await instance.get('/products');
       const data = parseResponse(response);
       return { data: Array.isArray(data) ? data : [] };
     } catch (error) {
@@ -30,7 +30,7 @@ export const productService = {
 
   getProductById: async (id: number) => {
     try {
-      const response = await instance.get(`/products/${id}`, { timeout: 10000 });
+      const response = await instance.get(`/products/${id}`);
       const data = parseResponse(response);
       return { data };
     } catch (error) {
@@ -41,7 +41,7 @@ export const productService = {
 
   searchProducts: async (keyword: string) => {
     try {
-      const response = await instance.get(`/products/search?keyword=${keyword}`, { timeout: 10000 });
+      const response = await instance.get(`/products/search?keyword=${keyword}`);
       const data = parseResponse(response);
       return { data: Array.isArray(data) ? data : [] };
     } catch (error) {
