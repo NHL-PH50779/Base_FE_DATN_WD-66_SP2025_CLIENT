@@ -26,6 +26,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { categoryService } from "../../services/category.service";
 import { productService } from "../../services/product.service";
 import { authService } from "../../services/auth/auth.service";
@@ -111,6 +112,11 @@ const Header = () => {
 
   const handleProfile = () => {
     navigate('/profile');
+    handleUserClose();
+  };
+
+  const handleWallet = () => {
+    navigate('/wallet');
     handleUserClose();
   };
 
@@ -386,6 +392,10 @@ const Header = () => {
         <MenuItem onClick={handleProfile}>
           <PersonIcon sx={{ mr: 1, color: '#2196f3' }} />
           <Typography>Thông tin cá nhân</Typography>
+        </MenuItem>
+        <MenuItem onClick={handleWallet}>
+          <AccountBalanceWalletIcon sx={{ mr: 1, color: '#4CAF50' }} />
+          <Typography>Ví của tôi</Typography>
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleAdminLogin}>

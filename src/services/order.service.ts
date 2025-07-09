@@ -75,9 +75,11 @@ export const orderService = {
   },
 
   // Yêu cầu hủy đơn VNPay
-  requestCancelVnpay: async (orderId: number) => {
+  requestCancelVnpay: async (orderId: number, reason: string) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/orders/${orderId}/cancel-request`);
+      const response = await axios.post(`${API_BASE_URL}/orders/${orderId}/cancel-request`, {
+        reason: reason
+      });
       return response.data;
     } catch (error) {
       console.error('Error requesting cancel VNPay:', error);

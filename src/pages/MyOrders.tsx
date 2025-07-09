@@ -64,6 +64,8 @@ interface Order {
   payment_status_id: number;
   total: number;
   created_at: string;
+  cancel_requested?: boolean;
+  payment_method?: string;
   items: OrderItem[];
 }
 
@@ -186,7 +188,10 @@ const MyOrders = () => {
   };
 
   const canRequestCancelVnpay = (order: any) => {
-    return order.is_vnpay && order.status === 'success' && !order.cancel_requested;
+    return order.payment_method === 'vnpay' && 
+           order.payment_status_id === 2 && // Đã thanh toán
+           [1, 2].includes(order.order_status_id) && // Chờ xác nhận hoặc đã xác nhận
+           !order.cancel_requested;
   };
 
   const canReturnOrder = (order: Order) => {
@@ -256,9 +261,12 @@ const MyOrders = () => {
     }
   };
 
-  const handleRequestCancelVnpay = async (orderId: number) => {
+  const [cancelVnpayDialog, setCancelVnpayDialog] = useState({ open: false, orderId: 0, reason: '' });
+
+  const handleRequestCancelVnpay = async () => {
     try {
-      await orderService.requestCancelVnpay(orderId);
+      await orderService.requestCancelVnpay(cancelVnpayDialog.orderId, cancelVnpayDialog.reason);
+      setCancelVnpayDialog({ open: false, orderId: 0, reason: '' });
       showSnackbar('Đã gửi yêu cầu hủy đơn hàng!', 'success');
       fetchOrders();
     } catch (error: any) {
@@ -443,13 +451,13 @@ const MyOrders = () => {
                                 variant="outlined"
                                 size="small"
                                 color="warning"
-                                onClick={() => handleRequestCancelVnpay(order.id)}
+                                onClick={() => setCancelVnpayDialog({ open: true, orderId: order.id, reason: '' })}
                               >
                                 Yêu cầu hủy
                               </Button>
                             )}
                             
-                            {order.cancel_requested && (
+                            {order.cancel_requested && order.order_status_id !== 6 && (
                               <Chip
                                 label="Đang chờ duyệt hủy"
                                 size="small"
@@ -565,6 +573,37 @@ const MyOrders = () => {
             color="warning"
             variant="contained"
             disabled={!returnDialog.reason.trim()}
+          >
+            Gửi yêu cầu
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Cancel VNPay Dialog */}
+      <Dialog open={cancelVnpayDialog.open} onClose={() => setCancelVnpayDialog({ open: false, orderId: 0, reason: '' })}>
+        <DialogTitle>Yêu cầu hủy đơn VNPay</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            Vui lòng cho biết lý do hủy đơn hàng:
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            value={cancelVnpayDialog.reason}
+            onChange={(e) => setCancelVnpayDialog({ ...cancelVnpayDialog, reason: e.target.value })}
+            placeholder="Nhập lý do hủy đơn hàng..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelVnpayDialog({ open: false, orderId: 0, reason: '' })}>
+            Hủy
+          </Button>
+          <Button
+            onClick={handleRequestCancelVnpay}
+            color="warning"
+            variant="contained"
+            disabled={!cancelVnpayDialog.reason.trim()}
           >
             Gửi yêu cầu
           </Button>

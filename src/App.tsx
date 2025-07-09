@@ -31,7 +31,8 @@ import ReviewDetail from "./pages/ReviewDetail";
 import VnpayReturn from "./pages/VnpayReturn";
 import VNPayReturn from "./pages/VNPayReturn";
 import PaymentSuccess from "./pages/PaymentSuccess";
-import Wallet from "./pages/Wallet";
+import WalletNew from "./pages/WalletNew";
+import WalletDebug from "./pages/WalletDebug";
 
 const LoadingFallback = () => (
   <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
@@ -125,7 +126,11 @@ const routeConfig = [
       },
       {
         path: "wallet",
-        element: <Wallet />,
+        element: <WalletNew />,
+      },
+      {
+        path: "wallet-debug",
+        element: <WalletDebug />,
       },
     ],
   },

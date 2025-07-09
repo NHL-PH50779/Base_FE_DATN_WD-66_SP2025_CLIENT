@@ -14,32 +14,107 @@ import {
   Paper,
   Chip,
   CircularProgress,
-  Alert
+  Alert,
+  Button,
+  Grid,
+  Avatar,
+  Divider,
+  TextField,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Tooltip,
+  Badge,
+  Stack,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
-import { AccountBalance, TrendingUp, TrendingDown, Refresh } from '@mui/icons-material';
+import {
+  AccountBalance,
+  TrendingUp,
+  TrendingDown,
+  Refresh,
+  Add,
+  Remove,
+  FilterList,
+  Visibility,
+  Payment,
+  AccountBalanceWallet,
+  History,
+  Notifications,
+  Close
+} from '@mui/icons-material';
 import { orderService } from '../services/order.service';
 
 interface WalletTransaction {
   id: number;
-  type: 'refund' | 'payment' | 'deposit';
+  type: 'credit' | 'debit';
   amount: number;
+  formatted_amount: string;
   description: string;
+  status: 'success' | 'pending' | 'failed';
+  transaction_code: string;
   created_at: string;
+  formatted_date: string;
+  balance_before: number;
+  balance_after: number;
+  reference_type?: string;
+  reference_id?: number;
 }
 
 interface WalletData {
   balance: number;
-  transactions: WalletTransaction[];
+  formatted_balance: string;
+  pending_amount: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+}
+
+interface FilterState {
+  type: string;
+  from_date: string;
+  to_date: string;
+  status: string;
 }
 
 const Wallet = () => {
   const [walletData, setWalletData] = useState<WalletData | null>(null);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [transactionLoading, setTransactionLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [selectedTransaction, setSelectedTransaction] = useState<WalletTransaction | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [filters, setFilters] = useState<FilterState>({
+    type: '',
+    from_date: '',
+    to_date: '',
+    status: ''
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     fetchWalletData();
+    fetchTransactions();
   }, []);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [filters, currentPage]);
 
   const fetchWalletData = async () => {
     try {
@@ -51,6 +126,29 @@ const Wallet = () => {
       setError(error.response?.data?.message || 'Có lỗi xảy ra khi tải thông tin ví');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      setTransactionLoading(true);
+      const params = new URLSearchParams();
+      if (filters.type) params.append('type', filters.type);
+      if (filters.from_date) params.append('from_date', filters.from_date);
+      if (filters.to_date) params.append('to_date', filters.to_date);
+      params.append('page', currentPage.toString());
+      
+      const response = await fetch(`http://127.0.0.1:8000/api/wallet/transactions?${params}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setTransactions(data.data.data || []);
+        setTotalPages(data.data.last_page || 1);
+      }
+    } catch (error: any) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setTransactionLoading(false);
     }
   };
 

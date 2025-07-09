@@ -18,7 +18,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Avatar
+  Avatar,
+  TextField
 } from '@mui/material';
 import {
   ArrowBack,
@@ -75,6 +76,8 @@ interface Order {
   note?: string;
   created_at: string;
   updated_at: string;
+  cancel_requested?: boolean;
+  cancel_reason?: string;
   items: OrderItem[];
   user?: {
     id: number;
@@ -90,6 +93,7 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [confirmDialog, setConfirmDialog] = useState({ open: false, action: '', title: '', message: '' });
+  const [cancelReason, setCancelReason] = useState('');
 
   // Order status mapping with timeline
   const orderStatuses = {
@@ -99,6 +103,14 @@ const OrderDetail = () => {
     4: { label: 'Đã giao hàng', color: 'success', icon: <CheckCircle />, description: 'Đơn hàng đã được giao thành công' },
     5: { label: 'Hoàn thành', color: 'success', icon: <Done />, description: 'Đơn hàng đã hoàn thành' },
     6: { label: 'Đã hủy', color: 'error', icon: <Cancel />, description: 'Đơn hàng đã bị hủy' }
+  };
+
+  // Hiển thị trạng thái đặc biệt cho đơn VNPay đang chờ duyệt hủy
+  const getDisplayStatus = (order: Order) => {
+    if (order.cancel_requested && order.order_status_id !== 6) {
+      return { label: 'Đang chờ duyệt hủy', color: 'warning', icon: <HourglassEmpty />, description: 'Yêu cầu hủy đang chờ admin xác nhận' };
+    }
+    return orderStatuses[order.order_status_id as keyof typeof orderStatuses];
   };
 
   // Payment status mapping
@@ -202,6 +214,15 @@ const OrderDetail = () => {
     });
   };
 
+  const handleRequestCancelVnpay = () => {
+    setConfirmDialog({
+      open: true,
+      action: 'request_cancel_vnpay',
+      title: 'Yêu cầu hủy đơn VNPay',
+      message: 'Vui lòng nhập lý do hủy đơn hàng:'
+    });
+  };
+
   const executeAction = async () => {
     if (!order) return;
 
@@ -221,6 +242,15 @@ const OrderDetail = () => {
         } catch (error) {
           showSnackbar('Lỗi khi gửi yêu cầu hoàn hàng!', 'error');
         }
+      } else if (confirmDialog.action === 'request_cancel_vnpay') {
+        if (!cancelReason.trim()) {
+          showSnackbar('Vui lòng nhập lý do hủy!', 'error');
+          return;
+        }
+        await orderService.requestCancelVnpay(order.id, cancelReason);
+        showSnackbar('Đã gửi yêu cầu hủy đơn hàng thành công!', 'success');
+        await fetchOrderDetail(order.id);
+        setCancelReason('');
       }
     } catch (error: any) {
       console.error('Error executing action:', error);
@@ -268,6 +298,13 @@ const OrderDetail = () => {
 
   const canCancelOrder = (order: Order) => {
     return order.order_status_id === 1; // Chỉ cho phép hủy khi chờ xác nhận
+  };
+
+  const canRequestCancelVnpay = (order: Order) => {
+    return order.payment_method === 'vnpay' && 
+           order.payment_status_id === 2 && 
+           (order.order_status_id === 1 || order.order_status_id === 2) &&
+           !order.cancel_requested;
   };
 
   const canConfirmReceived = (order: Order) => {
@@ -351,8 +388,8 @@ const OrderDetail = () => {
             
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Chip
-                icon={orderStatuses[order.order_status_id as keyof typeof orderStatuses]?.icon}
-                label={orderStatuses[order.order_status_id as keyof typeof orderStatuses]?.label}
+                icon={getDisplayStatus(order)?.icon}
+                label={getDisplayStatus(order)?.label}
                 sx={{
                   backgroundColor: 'rgba(255,255,255,0.2)',
                   color: 'white',
@@ -579,6 +616,15 @@ const OrderDetail = () => {
                       </Box>
                     </Grid>
                   )}
+                  
+                  {order.cancel_requested && order.cancel_reason && (
+                    <Grid size={{ xs: 12 }}>
+                      <Box sx={{ p: 2, backgroundColor: '#fff3e0', borderRadius: 2, borderLeft: '4px solid #ff9800' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Lý do yêu cầu hủy:</Typography>
+                        <Typography variant="body1" sx={{ fontStyle: 'italic' }}>"{order.cancel_reason}"</Typography>
+                      </Box>
+                    </Grid>
+                  )}
                 </Grid>
               </CardContent>
             </Card>
@@ -654,9 +700,9 @@ const OrderDetail = () => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography>Trạng thái:</Typography>
                     <Chip
-                      icon={orderStatuses[order.order_status_id as keyof typeof orderStatuses]?.icon}
-                      label={orderStatuses[order.order_status_id as keyof typeof orderStatuses]?.label}
-                      color={orderStatuses[order.order_status_id as keyof typeof orderStatuses]?.color as any}
+                      icon={getDisplayStatus(order)?.icon}
+                      label={getDisplayStatus(order)?.label}
+                      color={getDisplayStatus(order)?.color as any}
                       size="small"
                     />
                   </Box>
@@ -761,6 +807,20 @@ const OrderDetail = () => {
                     </Button>
                   )}
                   
+                  {canRequestCancelVnpay(order) && (
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      size="large"
+                      onClick={handleRequestCancelVnpay}
+                      startIcon={<Cancel />}
+                      sx={{ py: 1.5 }}
+                    >
+                      Yêu cầu hủy đơn VNPay
+                    </Button>
+                  )}
+                  
 
                   
                   <Button
@@ -789,7 +849,19 @@ const OrderDetail = () => {
       >
         <DialogTitle sx={{ pb: 1 }}>{confirmDialog.title}</DialogTitle>
         <DialogContent>
-          <Typography>{confirmDialog.message}</Typography>
+          <Typography sx={{ mb: 2 }}>{confirmDialog.message}</Typography>
+          {confirmDialog.action === 'request_cancel_vnpay' && (
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Lý do hủy"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Nhập lý do hủy đơn hàng..."
+              required
+            />
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 1 }}>
           <Button 
