@@ -2,10 +2,11 @@ import axios from "axios";
 
 const instance = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
-  timeout: 30000, // Tăng lên 30s
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
 });
 
@@ -16,7 +17,12 @@ instance.interceptors.response.use(
     if (error.code === 'ECONNABORTED') {
       console.warn('API Timeout:', error.config?.url);
     } else {
-      console.error("API Error:", error.response?.data || error.message);
+      console.error("API Error Details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method
+      });
     }
     return Promise.reject(error);
   }

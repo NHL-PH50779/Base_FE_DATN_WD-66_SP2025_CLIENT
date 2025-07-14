@@ -22,7 +22,6 @@ import {
   VisibilityOff,
   Login as LoginIcon,
   PersonAdd,
-  AdminPanelSettings
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { authService } from '../services/auth/auth.service';
@@ -109,9 +108,7 @@ const ClientLogin = () => {
     }
   };
 
-  const handleAdminLogin = () => {
-    window.location.href = 'http://localhost:5173/admin/login';
-  };
+
 
   return (
     <Box
@@ -301,33 +298,7 @@ const ClientLogin = () => {
                   </Button>
                 </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.7 }}
-                >
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    size="large"
-                    onClick={handleAdminLogin}
-                    startIcon={<AdminPanelSettings />}
-                    sx={{
-                      py: 1.5,
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      borderRadius: 3,
-                      borderColor: '#ff9800',
-                      color: '#ff9800',
-                      '&:hover': {
-                        borderColor: '#f57c00',
-                        backgroundColor: '#fff8e1'
-                      }
-                    }}
-                  >
-                    Đăng nhập quản trị
-                  </Button>
-                </motion.div>
+
 
                 <Box sx={{ textAlign: 'center', mt: 3 }}>
                   <Link
@@ -336,6 +307,7 @@ const ClientLogin = () => {
                     sx={{
                       color: 'text.secondary',
                       textDecoration: 'none',
+                      fontSize: '0.9rem',
                       '&:hover': {
                         color: 'primary.main',
                         textDecoration: 'underline'

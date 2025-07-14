@@ -19,9 +19,12 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
-    password_confirmation: ''
+    password_confirmation: '',
+    otp: ''
   });
   const [loading, setLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -30,16 +33,36 @@ const Register = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Kiểm tra thông tin đầu vào
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.password_confirmation.trim()) {
-      setError('Vui lòng nhập đầy đủ thông tin');
+  const sendOtp = async () => {
+    if (!formData.email.trim()) {
+      setError('Vui lòng nhập email');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setError('Email không hợp lệ');
+      return;
+    }
+
+    setOtpLoading(true);
+    setError('');
+
+    try {
+      await authService.sendOtp(formData.email);
+      setOtpSent(true);
+      showSnackbar('Đã gửi mã OTP đến email của bạn!', 'success');
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Lỗi khi gửi OTP');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Kiểm tra thông tin đầu vào
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.password_confirmation.trim() || !formData.otp.trim()) {
+      setError('Vui lòng nhập đầy đủ thông tin');
       return;
     }
     if (formData.password.length < 6) {
@@ -60,11 +83,9 @@ const Register = () => {
       setTimeout(() => navigate('/login'), 1500);
     } catch (error: any) {
       console.error('Register error:', error);
-      // Xử lý các loại lỗi khác nhau
       let errorMessage = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
       
       if (error.response?.status === 422) {
-        // Lỗi validation
         const errors = error.response.data.errors;
         if (errors?.email) {
           errorMessage = errors.email[0];
@@ -102,15 +123,25 @@ const Register = () => {
               sx={{ mb: 2 }}
               required
             />
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              sx={{ mb: 2 }}
-              required
-            />
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                required
+                disabled={otpSent}
+              />
+              <Button
+                variant="outlined"
+                onClick={sendOtp}
+                disabled={otpLoading || otpSent}
+                sx={{ minWidth: 120 }}
+              >
+                {otpLoading ? 'Đang gửi...' : otpSent ? 'Đã gửi' : 'Gửi OTP'}
+              </Button>
+            </Box>
             <TextField
               fullWidth
               label="Mật khẩu"
@@ -126,15 +157,28 @@ const Register = () => {
               type="password"
               value={formData.password_confirmation}
               onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})}
-              sx={{ mb: 3 }}
+              sx={{ mb: 2 }}
               required
             />
+            
+            {otpSent && (
+              <TextField
+                fullWidth
+                label="Mã OTP (6 số)"
+                value={formData.otp}
+                onChange={(e) => setFormData({...formData, otp: e.target.value})}
+                sx={{ mb: 3 }}
+                required
+                inputProps={{ maxLength: 6 }}
+                helperText="Vui lòng kiểm tra email để lấy mã OTP"
+              />
+            )}
             
             <Button
               type="submit"
               variant="contained"
               fullWidth
-              disabled={loading}
+              disabled={loading || !otpSent}
               sx={{ mb: 2 }}
             >
               {loading ? 'Đang đăng ký...' : 'Đăng ký'}

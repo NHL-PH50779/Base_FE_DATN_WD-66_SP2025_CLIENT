@@ -10,6 +10,7 @@ interface RegisterData {
   email: string;
   password: string;
   password_confirmation: string;
+  otp: string;
 }
 
 interface ProfileData {
@@ -107,6 +108,42 @@ export const authService = {
   changePassword: async (data: any) => {
     try {
       const response = await instance.put('/change-password', data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  sendOtp: async (email: string) => {
+    try {
+      const response = await instance.post('/send-otp', { email });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  verifyOtp: async (email: string, otp: string) => {
+    try {
+      const response = await instance.post('/verify-otp', { email, otp });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  forgotPassword: async (email: string) => {
+    try {
+      const response = await instance.post('/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  resetPassword: async (data: { email: string; otp: string; new_password: string; new_password_confirmation: string }) => {
+    try {
+      const response = await instance.post('/reset-password', data);
       return response.data;
     } catch (error) {
       throw error;
