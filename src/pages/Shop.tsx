@@ -44,7 +44,7 @@ const Shop = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [selectedBrand, setSelectedBrand] = useState('');
   const [sortBy, setSortBy] = useState('name');
-  const [priceRange, setPriceRange] = useState<number[]>([0, 50000000]);
+
   const [selectedRam, setSelectedRam] = useState<string[]>([]);
   const [selectedSsd, setSelectedSsd] = useState<string[]>([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -107,26 +107,24 @@ const Shop = () => {
       filtered = filtered.filter(product => product.brand_id === brandId);
     }
 
-    // Price range filter
-    filtered = filtered.filter(product => {
-      const price = product.variants?.[0]?.price || product.price || 0;
-      return price >= priceRange[0] && price <= priceRange[1];
-    });
+
 
     // RAM filter
     if (selectedRam.length > 0) {
       filtered = filtered.filter(product => {
         const productName = product.name.toLowerCase();
         const productDesc = (product.description || '').toLowerCase();
-        const variantInfo = product.variants?.map(v => v.Name.toLowerCase()).join(' ') || '';
+        const variantInfo = product.variants?.map(v => v.Name?.toLowerCase() || '').join(' ') || '';
         const searchText = `${productName} ${productDesc} ${variantInfo}`;
         
         return selectedRam.some(ram => {
-          const ramValue = ram.toLowerCase().replace('gb', '');
+          const ramValue = ram.replace(/GB/i, '').toLowerCase();
           return searchText.includes(ram.toLowerCase()) || 
+                 searchText.includes(ramValue) ||
                  searchText.includes(`${ramValue}gb`) ||
                  searchText.includes(`${ramValue} gb`) ||
-                 searchText.includes(`ram ${ramValue}`);
+                 searchText.includes(`ram ${ramValue}`) ||
+                 searchText.includes(`${ramValue}g`);
         });
       });
     }
@@ -136,15 +134,18 @@ const Shop = () => {
       filtered = filtered.filter(product => {
         const productName = product.name.toLowerCase();
         const productDesc = (product.description || '').toLowerCase();
-        const variantInfo = product.variants?.map(v => v.Name.toLowerCase()).join(' ') || '';
+        const variantInfo = product.variants?.map(v => v.Name?.toLowerCase() || '').join(' ') || '';
         const searchText = `${productName} ${productDesc} ${variantInfo}`;
         
         return selectedSsd.some(ssd => {
-          const ssdValue = ssd.toLowerCase().replace(/gb|tb/, '');
+          const ssdValue = ssd.replace(/GB|TB/i, '').toLowerCase();
           return searchText.includes(ssd.toLowerCase()) || 
+                 searchText.includes(ssdValue) ||
                  searchText.includes(`${ssdValue}gb`) ||
                  searchText.includes(`${ssdValue}tb`) ||
-                 searchText.includes(`ssd ${ssdValue}`);
+                 searchText.includes(`ssd ${ssdValue}`) ||
+                 searchText.includes(`${ssdValue}g`) ||
+                 searchText.includes(`${ssdValue}t`);
         });
       });
     }
@@ -163,14 +164,14 @@ const Shop = () => {
     });
 
     return filtered;
-  }, [products, searchTerm, selectedCategory, selectedBrand, sortBy, priceRange, selectedRam, selectedSsd]);
+  }, [products, searchTerm, selectedCategory, selectedBrand, sortBy, selectedRam, selectedSsd]);
 
   const clearFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedCategory('');
     setSelectedBrand('');
     setSortBy('name');
-    setPriceRange([0, 50000000]);
+
     setSelectedRam([]);
     setSelectedSsd([]);
     showSnackbar('Đã xóa tất cả bộ lọc', 'success');
@@ -272,29 +273,7 @@ const Shop = () => {
             sx={{ mb: 3 }}
           />
 
-          {/* Price Range */}
-          <Accordion defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="subtitle1" fontWeight={600}>Khoảng giá</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Box sx={{ px: 1 }}>
-                <Slider
-                  value={priceRange}
-                  onChange={(_, newValue) => setPriceRange(newValue as number[])}
-                  valueLabelDisplay="auto"
-                  min={0}
-                  max={50000000}
-                  step={1000000}
-                  valueLabelFormat={(value) => formatPrice(value)}
-                />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                  <Typography variant="caption">{formatPrice(priceRange[0])}</Typography>
-                  <Typography variant="caption">{formatPrice(priceRange[1])}</Typography>
-                </Box>
-              </Box>
-            </AccordionDetails>
-          </Accordion>
+
 
           {/* Category Filter */}
           <Accordion defaultExpanded>

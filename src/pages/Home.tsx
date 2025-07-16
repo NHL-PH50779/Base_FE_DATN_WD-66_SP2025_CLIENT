@@ -133,11 +133,11 @@ const Home = () => {
       {/* Hero Section */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 20%, #cbd5e1 100%)',
           minHeight: '80vh',
           display: 'flex',
           alignItems: 'center',
-          color: 'white',
+          color: '#1e293b',
           textAlign: 'center',
           position: 'relative',
           overflow: 'hidden',
@@ -188,44 +188,28 @@ const Home = () => {
             <Typography
               variant="h1"
               sx={{
-                fontWeight: 900,
-                mb: 3,
-                fontSize: { xs: '2.2rem', sm: '3rem', md: '3.5rem' },
-                background: 'linear-gradient(45deg, #ffffff 0%, #e3f2fd 50%, #ffffff 100%)',
+                fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                fontWeight: 800,
+                mb: 2,
+                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
+                background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                textShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                lineHeight: 1.2,
-                letterSpacing: '-0.02em'
+                lineHeight: 1.1,
+                letterSpacing: '-0.03em'
               }}
             >
-              Chúng tôi phục vụ
+              Giải pháp công nghệ
               <br />
               <Box component="span" sx={{ 
-                background: 'linear-gradient(45deg, #00f2fe 0%, #4facfe 100%)',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                position: 'relative',
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  bottom: '-10px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '80%',
-                  height: '4px',
-                  background: 'linear-gradient(45deg, #00f2fe 0%, #4facfe 100%)',
-                  borderRadius: '2px',
-                  animation: 'glow 2s ease-in-out infinite alternate'
-                },
-                '@keyframes glow': {
-                  '0%': { boxShadow: '0 0 5px rgba(0,242,254,0.5)' },
-                  '100%': { boxShadow: '0 0 20px rgba(79,172,254,0.8)' }
-                }
+                position: 'relative'
               }}>
-                sản phẩm công nghệ
+                hiện đại & đáng tin cậy
               </Box>
             </Typography>
           </motion.div>
@@ -248,15 +232,12 @@ const Home = () => {
                 lineHeight: 1.6
               }}
             >
-              Cung cấp các sản phẩm công nghệ 
+              Chuyên cung cấp laptop và thiết bị công nghệ 
               <Box component="span" sx={{ 
                 fontWeight: 600,
-                background: 'linear-gradient(45deg, #ffd700 0%, #ffed4e 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
+                color: '#3b82f6'
               }}>
-                chất lượng cao, đáng tin cậy
+                chất lượng cao cho doanh nghiệp và cá nhân
               </Box>
             </Typography>
           </motion.div>
@@ -272,25 +253,24 @@ const Home = () => {
                 size="large"
                 onClick={() => navigate('/shop')}
                 sx={{
-                  background: 'linear-gradient(45deg, #00f2fe 0%, #4facfe 100%)',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                   color: 'white',
-                  px: 5,
-                  py: 2,
-                  fontSize: '1.1rem',
-                  borderRadius: '50px',
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  borderRadius: '12px',
                   textTransform: 'none',
                   fontWeight: 600,
-                  boxShadow: '0 10px 30px rgba(79, 172, 254, 0.4)',
-                  border: '2px solid transparent',
-                  transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                  boxShadow: '0 8px 25px rgba(59, 130, 246, 0.3)',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    transform: 'translateY(-5px) scale(1.05)',
-                    boxShadow: '0 20px 50px rgba(79, 172, 254, 0.6)',
-                    background: 'linear-gradient(45deg, #4facfe 0%, #00f2fe 100%)'
+                    transform: 'translateY(-3px)',
+                    boxShadow: '0 12px 35px rgba(59, 130, 246, 0.4)',
+                    background: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)'
                   },
                 }}
               >
-                🚀 Khám phá ngay
+Khám phá sản phẩm
               </Button>
               
               <Button
@@ -298,8 +278,8 @@ const Home = () => {
                 size="large"
                 onClick={() => navigate('/about')}
                 sx={{
-                  color: 'white',
-                  borderColor: 'rgba(255,255,255,0.3)',
+                  color: '#64748b',
+                  borderColor: '#e2e8f0',
                   px: 5,
                   py: 2,
                   fontSize: '1.1rem',
@@ -307,16 +287,16 @@ const Home = () => {
                   textTransform: 'none',
                   fontWeight: 600,
                   backdropFilter: 'blur(10px)',
-                  background: 'rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.8)',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    borderColor: 'white',
-                    background: 'rgba(255,255,255,0.2)',
+                    borderColor: '#64748b',
+                    background: 'rgba(255,255,255,0.9)',
                     transform: 'translateY(-2px)'
                   },
                 }}
               >
-                📖 Tìm hiểu thêm
+Liên hệ tư vấn
               </Button>
             </Stack>
           </motion.div>
@@ -408,7 +388,7 @@ const Home = () => {
                 textAlign: 'center',
                 fontWeight: 700,
                 mb: 8,
-                background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                background: 'linear-gradient(45deg, #4682B4 30%, #87CEEB 90%)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
@@ -479,7 +459,7 @@ const Home = () => {
             <Typography 
               variant="h6" 
               sx={{ 
-                color: '#82ca9d', 
+                color: '#4682B4', 
                 textTransform: 'uppercase',
                 letterSpacing: 2,
                 mb: 2,
@@ -497,7 +477,7 @@ const Home = () => {
               sx={{ 
                 fontWeight: 800, 
                 mb: 3,
-                background: 'linear-gradient(45deg, #2c3e50 30%, #34495e 90%)',
+                background: 'linear-gradient(45deg, #4682B4 30%, #87CEEB 90%)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
@@ -612,7 +592,7 @@ const Home = () => {
                 sx={{ 
                   fontWeight: 800, 
                   mb: 3,
-                  background: 'linear-gradient(45deg, #2c3e50 30%, #34495e 90%)',
+                  background: 'linear-gradient(45deg, #4682B4 30%, #87CEEB 90%)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
@@ -675,7 +655,7 @@ const Home = () => {
                 sx={{ 
                   fontWeight: 800, 
                   mb: 3,
-                  background: 'linear-gradient(45deg, #2c3e50 30%, #34495e 90%)',
+                  background: 'linear-gradient(45deg, #4682B4 30%, #87CEEB 90%)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
@@ -769,7 +749,7 @@ const Home = () => {
             size="large"
             onClick={() => navigate('/shop')}
             sx={{
-              background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+              background: 'linear-gradient(45deg, #4682B4 30%, #87CEEB 90%)',
               color: 'white',
               px: 6,
               py: 2.5,
@@ -777,12 +757,12 @@ const Home = () => {
               borderRadius: '50px',
               textTransform: 'none',
               fontWeight: 600,
-              boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)',
+              boxShadow: '0 8px 25px rgba(70, 130, 180, 0.4)',
               transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
               '&:hover': {
                 transform: 'translateY(-5px) scale(1.05)',
-                boxShadow: '0 15px 40px rgba(102, 126, 234, 0.6)',
-                background: 'linear-gradient(45deg, #764ba2 30%, #667eea 90%)'
+                boxShadow: '0 15px 40px rgba(70, 130, 180, 0.6)',
+                background: 'linear-gradient(45deg, #87CEEB 30%, #4682B4 90%)'
               }
             }}
           >

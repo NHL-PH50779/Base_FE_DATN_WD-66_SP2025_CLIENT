@@ -1,13 +1,14 @@
 import React, { Suspense, lazy } from "react";
-import { useRoutes } from "react-router-dom";
+import { useRoutes, Navigate } from "react-router-dom";
 import { useCartSync } from "./hooks/useCartSync";
-import { CircularProgress, Box } from "@mui/material";
+import { CircularProgress, Box, Container, Typography, Button } from "@mui/material";
+import { authService } from "./services/auth/auth.service";
 import ClientLayout from "./components/layouts/ClientLayout";
 import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
 
-// Lazy load các trang
-const Home = lazy(() => import("./pages/Home"));
+// Import trực tiếp Home để tránh lazy loading
+import Home from "./pages/Home";
 const Shop = lazy(() => import("./pages/Shop"));
 const Cart = lazy(() => import("./pages/Cart"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
@@ -33,13 +34,37 @@ import VNPayReturn from "./pages/VNPayReturn";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import WalletNew from "./pages/WalletNew";
 import WalletDebug from "./pages/WalletDebug";
-import PerformanceTest from "./pages/PerformanceTest";
+
 
 const LoadingFallback = () => (
   <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
     <CircularProgress size={60} />
   </Box>
 );
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  if (!authService.isAuthenticated()) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h4" gutterBottom>
+          Vui lòng đăng nhập
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Bạn cần đăng nhập để truy cập trang này
+        </Typography>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={() => window.location.href = '/login'}
+          sx={{ px: 4, py: 1.5 }}
+        >
+          Đăng nhập ngay
+        </Button>
+      </Container>
+    );
+  }
+  return <>{children}</>;
+};
 const routeConfig = [
   {
     path: "/login",
@@ -51,12 +76,12 @@ const routeConfig = [
   },
   {
     path: "/",
-    element: <ClientLogin />,
-  },
-  {
-    path: "/",
     element: <ClientLayout />,
     children: [
+      {
+        index: true,
+        element: <Home />,
+      },
       {
         path: "home",
         element: <Home />,
@@ -83,15 +108,15 @@ const routeConfig = [
       },
       {
         path: "checkout",
-        element: <Checkout />,
+        element: <ProtectedRoute><Checkout /></ProtectedRoute>,
       },
       {
         path: "orders",
-        element: <MyOrders />,
+        element: <ProtectedRoute><MyOrders /></ProtectedRoute>,
       },
       {
         path: "orders/:id",
-        element: <OrderDetail />,
+        element: <ProtectedRoute><OrderDetail /></ProtectedRoute>,
       },
       {
         path: "review/:orderId",
@@ -107,7 +132,7 @@ const routeConfig = [
       },
       {
         path: "profile",
-        element: <Profile />,
+        element: <ProtectedRoute><Profile /></ProtectedRoute>,
       },
       {
         path: "product/:productId/reviews",
@@ -115,7 +140,7 @@ const routeConfig = [
       },
       {
         path: "wishlist",
-        element: <Wishlist />,
+        element: <ProtectedRoute><Wishlist /></ProtectedRoute>,
       },
       {
         path: "vnpay-return",
@@ -133,10 +158,7 @@ const routeConfig = [
         path: "wallet-debug",
         element: <WalletDebug />,
       },
-      {
-        path: "performance-test",
-        element: <PerformanceTest />,
-      },
+
     ],
   },
   {

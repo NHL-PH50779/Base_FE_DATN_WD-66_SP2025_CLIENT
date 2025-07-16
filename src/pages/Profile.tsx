@@ -108,27 +108,45 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    const user = authService.getUser();
-    if (user) {
-      console.log('Loading user data in profile:', user);
-      console.log('User address fields:', {
-        province: user.province,
-        district: user.district, 
-        ward: user.ward,
-        address: user.address
-      });
-      setProfileData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        province: user.province || '',
-        district: user.district || '',
-        ward: user.ward || '',
-        address: user.address || '',
-        birth_date: user.birth_date || '',
-        gender: user.gender || ''
-      });
-    }
+    const loadUserData = async () => {
+      try {
+        // Lấy dữ liệu mới nhất từ server
+        const response = await authService.getCurrentUser();
+        if (response.user) {
+          console.log('Loading fresh user data from server:', response.user);
+          setProfileData({
+            name: response.user.name || '',
+            email: response.user.email || '',
+            phone: response.user.phone || '',
+            province: response.user.province || '',
+            district: response.user.district || '',
+            ward: response.user.ward || '',
+            address: response.user.address || '',
+            birth_date: response.user.birth_date || '',
+            gender: response.user.gender || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        // Fallback to localStorage if API fails
+        const user = authService.getUser();
+        if (user) {
+          setProfileData({
+            name: user.name || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            province: user.province || '',
+            district: user.district || '',
+            ward: user.ward || '',
+            address: user.address || '',
+            birth_date: user.birth_date || '',
+            gender: user.gender || ''
+          });
+        }
+      }
+    };
+    
+    loadUserData();
   }, []);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {

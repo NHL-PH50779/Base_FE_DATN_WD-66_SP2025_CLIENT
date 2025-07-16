@@ -114,7 +114,7 @@ const ClientLogin = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: '#ffffff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -129,17 +129,30 @@ const ClientLogin = () => {
         >
           <Card
             sx={{
-              borderRadius: 4,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-              overflow: 'hidden'
+              borderRadius: 6,
+              boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+              overflow: 'hidden',
+              backdropFilter: 'blur(20px)',
+              background: 'rgba(255,255,255,0.95)'
             }}
           >
             <Box
               sx={{
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
                 color: 'white',
                 textAlign: 'center',
-                py: 4
+                py: 4,
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)'
+                }
               }}
             >
               <motion.div
@@ -147,17 +160,19 @@ const ClientLogin = () => {
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <LoginIcon sx={{ fontSize: 60, mb: 2 }} />
+                <Box sx={{ position: 'relative', zIndex: 1 }}>
+                  <LoginIcon sx={{ fontSize: 56, mb: 2 }} />
+                </Box>
               </motion.div>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                Chào mừng trở lại!
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, letterSpacing: '-1px', position: 'relative', zIndex: 1 }}>
+                Chào mừng trở lại
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                Đăng nhập để tiếp tục mua sắm
+              <Typography variant="body1" sx={{ opacity: 0.9, position: 'relative', zIndex: 1 }}>
+                Đăng nhập vào tài khoản của bạn
               </Typography>
             </Box>
 
-            <CardContent sx={{ p: 4 }}>
+            <CardContent sx={{ p: 3 }}>
               <Box component="form" onSubmit={handleSubmit}>
                 {error && (
                   <motion.div
@@ -186,7 +201,20 @@ const ClientLogin = () => {
                     required
                     error={!!validationErrors.email}
                     helperText={validationErrors.email}
-                    sx={{ mb: 3 }}
+                    sx={{ 
+                      mb: 3,
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 3,
+                        backgroundColor: 'rgba(248, 250, 252, 0.8)',
+                        backdropFilter: 'blur(10px)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(248, 250, 252, 0.9)'
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)'
+                        }
+                      }
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -212,7 +240,20 @@ const ClientLogin = () => {
                     required
                     error={!!validationErrors.password}
                     helperText={validationErrors.password}
-                    sx={{ mb: 4 }}
+                    sx={{ 
+                      mb: 4,
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 3,
+                        backgroundColor: 'rgba(248, 250, 252, 0.8)',
+                        backdropFilter: 'blur(10px)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(248, 250, 252, 0.9)'
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)'
+                        }
+                      }
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -250,11 +291,11 @@ const ClientLogin = () => {
                       fontSize: '1.1rem',
                       fontWeight: 600,
                       borderRadius: 3,
-                      background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                      boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      boxShadow: '0 8px 32px rgba(99, 102, 241, 0.3)',
                       mb: 3,
                       '&:hover': {
-                        background: 'linear-gradient(45deg, #1976D2 30%, #1BA3D3 90%)',
+                        background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
                       }
                     }}
                   >
@@ -285,12 +326,14 @@ const ClientLogin = () => {
                       fontSize: '1rem',
                       fontWeight: 600,
                       borderRadius: 3,
-                      borderColor: '#2196F3',
-                      color: '#2196F3',
+                      borderColor: 'rgba(99, 102, 241, 0.3)',
+                      color: '#6366f1',
+                      backgroundColor: 'rgba(99, 102, 241, 0.05)',
+                      backdropFilter: 'blur(10px)',
                       mb: 2,
                       '&:hover': {
-                        borderColor: '#1976D2',
-                        backgroundColor: '#f3f8ff'
+                        borderColor: 'rgba(99, 102, 241, 0.5)',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)'
                       }
                     }}
                   >

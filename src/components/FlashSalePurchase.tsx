@@ -99,10 +99,12 @@ const FlashSalePurchase: React.FC<FlashSalePurchaseProps> = ({
       // Mua sản phẩm flash sale
       await flashSaleService.purchaseFlashSale(productId, 1);
       
-      // Refresh flash sale data
-      if (onSuccess) {
-        onSuccess();
-      }
+      // Refresh flash sale data ngay lập tức
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess();
+        }
+      }, 500);
       
       // Close dialog and redirect to cart
       onClose();

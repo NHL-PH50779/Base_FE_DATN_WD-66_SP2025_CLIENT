@@ -43,9 +43,10 @@ export interface UpcomingFlashSale {
 
 export const flashSaleService = {
   // Lấy flash sale hiện tại
-  getCurrentFlashSale: async (): Promise<{ data: FlashSaleData | null }> => {
+  getCurrentFlashSale: async (forceRefresh = false): Promise<{ data: FlashSaleData | null }> => {
     try {
-      const response = await instance.get('/flash-sale/current');
+      const url = forceRefresh ? '/flash-sale/current?t=' + Date.now() : '/flash-sale/current';
+      const response = await instance.get(url);
       return { data: response.data.data };
     } catch (error) {
       console.error('Error fetching current flash sale:', error);

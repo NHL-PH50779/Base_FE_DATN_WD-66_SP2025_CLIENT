@@ -36,9 +36,9 @@ const FlashSale: React.FC = () => {
     productName: string;
   }>({ open: false, productId: 0, productName: '' });
 
-  const fetchCurrentFlashSale = async () => {
+  const fetchCurrentFlashSale = async (forceRefresh = false) => {
     try {
-      const response = await flashSaleService.getCurrentFlashSale();
+      const response = await flashSaleService.getCurrentFlashSale(forceRefresh);
       if (response.data) {
         console.log('Flash Sale Data:', response.data);
         setFlashSale(response.data);
@@ -141,16 +141,18 @@ const FlashSale: React.FC = () => {
 
   const handlePurchaseSuccess = () => {
     // Refresh flash sale data after successful purchase
-    fetchCurrentFlashSale();
+    setTimeout(() => {
+      fetchCurrentFlashSale(true); // Force refresh
+    }, 1000);
   };
 
   // Hiển thị Flash Sale sắp diễn ra
   if (upcomingFlashSale && !flashSale) {
     return (
       <Box sx={{ 
-        background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)', 
-        py: 6,
-        color: 'white'
+        background: 'linear-gradient(135deg, #FFE5E5 0%, #FFF0F0 100%)', 
+        py: 3,
+        color: '#333'
       }}>
         <Container>
           <motion.div
@@ -159,11 +161,11 @@ const FlashSale: React.FC = () => {
             transition={{ duration: 0.8 }}
           >
             <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
-                <Timer sx={{ mr: 1, fontSize: 40 }} />
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1.5, color: '#FF6B6B' }}>
+                <Timer sx={{ mr: 1, fontSize: 32 }} />
                 Flash Sale Sắp Diễn Ra
               </Typography>
-              <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
+              <Typography variant="body1" sx={{ mb: 3, opacity: 0.8 }}>
                 {upcomingFlashSale.name}
               </Typography>
               
@@ -172,12 +174,12 @@ const FlashSale: React.FC = () => {
                 {['hours', 'minutes', 'seconds'].map((unit, index) => (
                   <Box key={unit} sx={{ textAlign: 'center' }}>
                     <Box sx={{
-                      background: 'rgba(255,255,255,0.2)',
+                      background: 'rgba(255,107,107,0.1)',
                       borderRadius: 2,
-                      p: 2,
-                      minWidth: 80
+                      p: 1.5,
+                      minWidth: 60
                     }}>
-                      <Typography variant="h3" sx={{ fontWeight: 700 }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#FF6B6B' }}>
                         {String(timeLeft[unit as keyof typeof timeLeft]).padStart(2, '0')}
                       </Typography>
                     </Box>
@@ -201,9 +203,9 @@ const FlashSale: React.FC = () => {
 
   return (
     <Box sx={{ 
-      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)', 
-      py: 8,
-      color: 'white'
+      background: 'linear-gradient(135deg, #FFE5E5 0%, #FFF0F0 100%)', 
+      py: 4,
+      color: '#333'
     }}>
       <Container>
         <motion.div
@@ -212,31 +214,33 @@ const FlashSale: React.FC = () => {
           transition={{ duration: 0.8 }}
         >
           {/* Header */}
-          <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Typography variant="h3" sx={{ fontWeight: 700, mb: 2 }}>
-              <LocalFireDepartment sx={{ mr: 2, fontSize: 50 }} />
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1.5, color: '#FF6B6B' }}>
+              <LocalFireDepartment sx={{ mr: 1.5, fontSize: 36 }} />
               {flashSale.name}
             </Typography>
             
             {/* Đồng hồ đếm ngược */}
-            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mb: 4 }}>
+            <Stack direction="row" spacing={1.5} justifyContent="center" sx={{ mb: 3 }}>
               <Chip 
                 label="KẾT THÚC TRONG" 
+                size="small"
                 sx={{ 
-                  background: 'rgba(255,255,255,0.2)', 
-                  color: 'white',
-                  fontWeight: 600
+                  background: 'rgba(255,107,107,0.1)', 
+                  color: '#FF6B6B',
+                  fontWeight: 600,
+                  fontSize: '0.75rem'
                 }} 
               />
               {['hours', 'minutes', 'seconds'].map((unit, index) => (
                 <Box key={unit} sx={{ textAlign: 'center' }}>
                   <Box sx={{
-                    background: 'rgba(255,255,255,0.2)',
+                    background: 'rgba(255,107,107,0.1)',
                     borderRadius: 2,
-                    p: 1.5,
-                    minWidth: 60
+                    p: 1,
+                    minWidth: 50
                   }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#FF6B6B' }}>
                       {String(timeLeft[unit as keyof typeof timeLeft]).padStart(2, '0')}
                     </Typography>
                   </Box>
@@ -249,9 +253,9 @@ const FlashSale: React.FC = () => {
           </Box>
 
           {/* Products Grid */}
-          <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
-            {flashSale.items.slice(0, 8).map((item, index) => (
-              <Grid item xs={6} sm={4} md={3} lg={2.4} key={item.id} sx={{ display: 'flex' }}>
+          <Grid container spacing={1.5} sx={{ alignItems: 'stretch' }}>
+            {flashSale.items.slice(0, 6).map((item, index) => (
+              <Grid item xs={6} sm={4} md={3} lg={2} key={item.id} sx={{ display: 'flex' }}>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -263,15 +267,17 @@ const FlashSale: React.FC = () => {
                     {/* Flash Sale Badge */}
                     <Chip
                       label={`🔥 -${item.discount_percentage}%`}
+                      size="small"
                       sx={{
                         position: 'absolute',
-                        top: 8,
-                        left: 8,
+                        top: 6,
+                        left: 6,
                         background: 'linear-gradient(45deg, #ff4757 30%, #ff3742 90%)',
                         color: 'white',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         zIndex: 10,
-                        fontSize: '0.75rem'
+                        fontSize: '0.7rem',
+                        height: '20px'
                       }}
                     />
                     

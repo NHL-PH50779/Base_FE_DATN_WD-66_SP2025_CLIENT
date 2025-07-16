@@ -50,7 +50,19 @@ export const authService = {
       
       if (result.token) {
         localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
+        
+        // Đợi một chút để token được set trong header
+        setTimeout(async () => {
+          try {
+            const userResponse = await instance.get('/user');
+            localStorage.setItem('user', JSON.stringify(userResponse.data.user));
+            console.log('Updated user data from server:', userResponse.data.user);
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+            localStorage.setItem('user', JSON.stringify(result.user));
+          }
+        }, 100);
+        
         console.log('Token saved:', result.token);
       }
       
@@ -144,6 +156,18 @@ export const authService = {
   resetPassword: async (data: { email: string; otp: string; new_password: string; new_password_confirmation: string }) => {
     try {
       const response = await instance.post('/reset-password', data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getCurrentUser: async () => {
+    try {
+      const response = await instance.get('/user');
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
       return response.data;
     } catch (error) {
       throw error;
