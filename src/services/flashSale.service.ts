@@ -45,11 +45,19 @@ export const flashSaleService = {
   // Lấy flash sale hiện tại
   getCurrentFlashSale: async (forceRefresh = false): Promise<{ data: FlashSaleData | null }> => {
     try {
-      const url = forceRefresh ? '/flash-sale/current?t=' + Date.now() : '/flash-sale/current';
-      const response = await instance.get(url);
+      // Luôn thêm timestamp để tránh cache
+      const timestamp = Date.now();
+      const url = `/flash-sale/current?t=${timestamp}`;
+      const response = await instance.get(url, { 
+        timeout: 5000,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       return { data: response.data.data };
     } catch (error) {
-      console.error('Error fetching current flash sale:', error);
+      // Silent fail - không log error
       return { data: null };
     }
   },
@@ -57,10 +65,10 @@ export const flashSaleService = {
   // Lấy flash sale sắp tới
   getUpcomingFlashSale: async (): Promise<{ data: UpcomingFlashSale | null }> => {
     try {
-      const response = await instance.get('/flash-sale/upcoming');
+      const response = await instance.get('/flash-sale/upcoming', { timeout: 5000 });
       return { data: response.data.data };
     } catch (error) {
-      console.error('Error fetching upcoming flash sale:', error);
+      // Silent fail - không log error
       return { data: null };
     }
   },

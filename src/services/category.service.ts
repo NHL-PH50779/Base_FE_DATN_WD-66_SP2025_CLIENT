@@ -21,12 +21,11 @@ const parseResponse = (response: any) => {
 export const categoryService = {
   getAllCategories: async () => {
     try {
-      const response = await instance.get("/categories", { timeout: 10000 });
+      const response = await instance.get("/categories", { timeout: 5000 });
       const data = parseResponse(response);
       return { data: Array.isArray(data) ? data : [] };
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      // Fallback to mock data if API fails
+      // Silent fail with fallback data
       return {
         data: [
           { id: 1, name: 'Laptop', description: 'Máy tính xách tay' },

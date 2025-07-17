@@ -8,6 +8,7 @@ const instance = axios.create({
     "Accept": "application/json",
     "X-Requested-With": "XMLHttpRequest",
   },
+  withCredentials: false,
 });
 
 // Interceptor để xử lý Git conflicts và timeout

@@ -101,7 +101,7 @@ const ProductDetail = () => {
   };
 
   const handleQuantityChange = (change: number) => {
-    const maxStock = currentVariant?.stock || 0;
+    const maxStock = currentVariant?.stock || product?.stock || 0;
     const newQuantity = quantity + change;
     setQuantity(Math.max(1, Math.min(newQuantity, maxStock)));
   };
@@ -452,15 +452,15 @@ const ProductDetail = () => {
                       <IconButton
                         size="small"
                         onClick={() => handleQuantityChange(1)}
-                        disabled={quantity >= (currentVariant?.stock || 0)}
+                        disabled={quantity >= (currentVariant?.stock || product?.stock || 0)}
                         sx={{ borderRadius: 0, px: 1 }}
                       >
                         <Add fontSize="small" />
                       </IconButton>
                     </Box>
-                    <Typography variant="body2" color={quantity >= (currentVariant?.stock || 0) ? "error" : "text.secondary"}>
-                      {currentVariant?.stock || 0} sản phẩm có sẵn
-                      {quantity >= (currentVariant?.stock || 0) && " (Đã chọn tối đa)"}
+                    <Typography variant="body2" color={quantity >= (currentVariant?.stock || product.stock || 0) ? "error" : "text.secondary"}>
+                      {currentVariant?.stock || product.stock || 0} sản phẩm có sẵn
+                      {quantity >= (currentVariant?.stock || product.stock || 0) && " (Đã chọn tối đa)"}
                     </Typography>
                   </Stack>
                 </Box>

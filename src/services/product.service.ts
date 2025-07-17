@@ -9,7 +9,13 @@ const parseResponse = (response: any) => {
       .replace(/<<<<<<< HEAD\n/g, '')
       .replace(/=======\n/g, '')
       .replace(/>>>>>>> [^\n]+\n/g, '');
-    data = JSON.parse(jsonString);
+    try {
+      data = JSON.parse(jsonString);
+    } catch (e) {
+      console.error('Error parsing JSON:', e);
+      console.log('Raw response:', response.data);
+      return [];
+    }
   } else {
     data = response.data;
   }
@@ -19,11 +25,12 @@ const parseResponse = (response: any) => {
 export const productService = {
   getAllProducts: async () => {
     try {
-      const response = await instance.get('/products');
+      const response = await instance.get('/products', { timeout: 10000 });
       const data = parseResponse(response);
+      console.log('Products data:', data); // Debug log
       return { data: Array.isArray(data) ? data : [] };
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error('Error fetching products:', error); // Log error for debugging
       return { data: [] };
     }
   },

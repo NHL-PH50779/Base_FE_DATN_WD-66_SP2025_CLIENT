@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -30,7 +30,7 @@ const FlashSale: React.FC = () => {
     productName: string;
   }>({ open: false, productId: 0, productName: '' });
 
-  const fetchCurrentFlashSale = useCallback(async (forceRefresh = false) => {
+  const fetchCurrentFlashSale = async (forceRefresh = false) => {
     try {
       const response = await flashSaleService.getCurrentFlashSale(forceRefresh);
       if (response.data) {
@@ -41,7 +41,7 @@ const FlashSale: React.FC = () => {
     } catch (error) {
       console.error('Error fetching current flash sale:', error);
     }
-  }, []);
+  };
 
   const fetchUpcomingFlashSale = async () => {
     try {
@@ -57,14 +57,7 @@ const FlashSale: React.FC = () => {
   useEffect(() => {
     fetchCurrentFlashSale();
     fetchUpcomingFlashSale();
-    
-    // Thiết lập interval để cập nhật dữ liệu mỗi 30 giây
-    const intervalId = setInterval(() => {
-      fetchCurrentFlashSale(true);
-    }, 30000);
-    
-    return () => clearInterval(intervalId);
-  }, [fetchCurrentFlashSale]);
+  }, []);
 
   // Tính toán thời gian còn lại
   const calculateTimeLeft = (endTime: string) => {
@@ -272,7 +265,7 @@ const FlashSale: React.FC = () => {
                           sold_percentage: item.sold_percentage,
                           discount_percentage: item.discount_percentage
                         }
-                      }}
+                      }} 
                     />
                   </Box>
                 </motion.div>

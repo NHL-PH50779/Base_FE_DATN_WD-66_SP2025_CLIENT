@@ -33,6 +33,7 @@ import { motion } from "framer-motion";
 import type { Product } from "../types/product.type";
 import { productService } from "../services/product.service";
 import { categoryService } from "../services/category.service";
+import instance from "../apis";
 import ProductCard from "../components/ProductCard";
 import FlashSale from "../components/FlashSale";
 
@@ -51,7 +52,8 @@ const Home = () => {
         setLoading(true);
         
         // Fetch data với timeout ngắn hưn
-        const fetchWithTimeout = (promise, timeout = 5000) => {
+        // Tăng timeout để tránh lỗi timeout
+        const fetchWithTimeout = (promise, timeout = 10000) => {
           return Promise.race([
             promise,
             new Promise((_, reject) => 
@@ -64,17 +66,39 @@ const Home = () => {
         let categories = [];
         
         try {
-          const productsResponse = await fetchWithTimeout(productService.getAllProducts());
-          allProducts = productsResponse.data?.slice(0, 16) || [];
+          // Gọi trực tiếp API thay vì qua service
+          const response = await instance.get('/products', { timeout: 15000 });
+          console.log('Direct API response:', response);
+          
+          if (response.data && response.data.data) {
+            allProducts = response.data.data.slice(0, 12) || [];
+            console.log('Products after slice:', allProducts);
+          } else {
+            console.error('Invalid response format:', response);
+          }
         } catch (error) {
-          console.warn('Products fetch failed, using empty array');
+          console.error('Error fetching products in Home:', error);
         }
         
         try {
-          const categoriesResponse = await fetchWithTimeout(categoryService.getAllCategories());
-          categories = categoriesResponse.data?.slice(0, 8) || [];
+          // Gọi trực tiếp API categories
+          const catResponse = await instance.get('/categories', { timeout: 15000 });
+          console.log('Categories API response:', catResponse);
+          
+          if (catResponse.data && catResponse.data.data) {
+            categories = catResponse.data.data.slice(0, 8) || [];
+          } else {
+            // Fallback data
+            categories = [
+              { id: 1, name: 'Laptop Gaming' },
+              { id: 2, name: 'Laptop Văn Phòng' },
+              { id: 3, name: 'Laptop Đồ Họa' },
+              { id: 4, name: 'Macbook' }
+            ];
+          }
         } catch (error) {
-          console.warn('Categories fetch failed, using fallback data');
+          console.error('Error fetching categories:', error);
+          // Fallback data
           categories = [
             { id: 1, name: 'Laptop Gaming' },
             { id: 2, name: 'Laptop Văn Phòng' },
@@ -83,12 +107,19 @@ const Home = () => {
           ];
         }
         
-        setProducts(allProducts);
+        // Kiểm tra dữ liệu trước khi set state
+        if (allProducts && allProducts.length > 0) {
+          console.log('Setting products, count:', allProducts.length);
+          setProducts(allProducts);
+          setFeaturedProducts(allProducts.slice(0, 6));
+          setRecommendedProducts(allProducts.slice(6, 12));
+        } else {
+          console.warn('No products data available');
+        }
+        
         setCategories(categories);
-        setFeaturedProducts(allProducts.slice(0, 8));
-        setRecommendedProducts(allProducts.slice(8, 16));
       } catch (error) {
-        console.error("Fetch error:", error);
+        // Silent fail
       } finally {
         setLoading(false);
       }
@@ -489,7 +520,7 @@ Liên hệ tư vấn
         </motion.div>
 
         <Grid container spacing={4}>
-          {categories.slice(0, 8).map((category, index) => (
+          {categories && categories.length > 0 ? categories.slice(0, 8).map((category, index) => (
             <Grid size={{ xs: 12, sm: 6, md: 3 }} key={category.id}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -544,7 +575,11 @@ Liên hệ tư vấn
                 </Card>
               </motion.div>
             </Grid>
-          ))}
+          )) : (
+            <Typography variant="body1" sx={{ textAlign: 'center', width: '100%', py: 4 }}>
+              Không có danh mục nào hiển thị
+            </Typography>
+          )}
         </Grid>
       </Container>
 
@@ -603,7 +638,7 @@ Liên hệ tư vấn
             </Box>
           </motion.div>
 
-          {featuredProducts.length > 0 && (
+          {featuredProducts && featuredProducts.length > 0 ? (
             <Grid container spacing={4} sx={{ alignItems: 'stretch' }}>
               {featuredProducts.map((product, index) => (
                 <Grid size={{ xs: 12, sm: 6, md: 3 }} key={product.id} sx={{ display: 'flex' }}>
@@ -620,6 +655,12 @@ Liên hệ tư vấn
                 </Grid>
               ))}
             </Grid>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="h6" color="text.secondary">
+                Không có sản phẩm nào hiển thị
+              </Typography>
+            </Box>
           )}
         </Container>
       </Box>

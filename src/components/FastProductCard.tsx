@@ -1,238 +1,274 @@
-import React, { memo, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { 
   Card, 
   CardMedia, 
   CardContent, 
   Typography, 
-  Button, 
   Box,
   Chip,
-  IconButton,
+  LinearProgress,
   Snackbar,
   Alert
 } from '@mui/material';
-import { 
-  ShoppingCart, 
-  Favorite, 
-  FavoriteBorder,
-  Visibility 
-} from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import type { Product } from '../types/product.type';
 
-interface Props {
-  product: Product;
+interface FastProductCardProps {
+  product: Product & {
+    isFlashSale?: boolean;
+    originalPrice?: number;
+    flashSaleData?: {
+      sold_quantity: number;
+      remaining_quantity: number;
+      sold_percentage: number;
+      discount_percentage: number;
+    };
+  };
 }
 
-const FastProductCard: React.FC<Props> = memo(({ product }) => {
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
-
-  const showSnackbar = useCallback((message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity });
-  }, []);
-
-  const getDisplayPrice = useCallback(() => {
-    if (product.price) {
-      const price = typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price);
-      if (price > 0) return price;
-    }
-    if (product.variants?.length > 0) {
-      const prices = product.variants.map(v => v.price).filter(p => p > 0);
-      return prices.length > 0 ? Math.min(...prices) : 0;
-    }
-    return 0;
-  }, [product.price, product.variants]);
-
-  const formatPrice = useCallback((price: number) => {
+const FastProductCard: React.FC<FastProductCardProps> = ({ product }) => {
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({ open: false, message: '', severity: 'success' });
+  
+  // Format giá tiền
+  const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'
     }).format(price);
-  }, []);
+  };
 
-  const getImageUrl = useCallback((thumbnail?: string) => {
+  // Xử lý ảnh sản phẩm
+  const getImageUrl = (thumbnail?: string) => {
     if (!thumbnail) return '/placeholder-image.jpg';
     if (thumbnail.startsWith('http')) return thumbnail;
     return `http://127.0.0.1:8000/storage/products/${thumbnail.replace('products/', '')}`;
-  }, []);
+  };
 
-  const hasStock = useCallback(() => {
-    return true; // Luôn cho phép thêm vào giỏ hàng
-  }, []);
-
-  const handleAddToCart = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      showSnackbar('Vui lòng đăng nhập để thêm vào giỏ hàng!', 'error');
-      setTimeout(() => window.location.href = '/login', 1500);
-      return;
-    }
-    
-    try {
-      const { cartService } = await import('../services/cart.service');
-      await cartService.addToCart(product.id, null, 1);
-      showSnackbar('Đã thêm vào giỏ hàng!', 'success');
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        showSnackbar('Phiên đăng nhập hết hạn!', 'error');
-        setTimeout(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-        }, 1500);
-      } else {
-        showSnackbar('Có lỗi khi thêm vào giỏ hàng!', 'error');
-      }
-    }
-  }, [product.id, showSnackbar]);
-
-  const displayPrice = getDisplayPrice();
-  const originalPrice = displayPrice * 1.2;
+  const displayPrice = product.price || 0;
+  const originalPrice = product.originalPrice || displayPrice * 1.2;
+  const discountPercentage = product.flashSaleData?.discount_percentage || 
+    Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
 
   return (
-    <Card
-      sx={{
-        height: 420,
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        borderRadius: 2,
-        boxShadow: 1,
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 3
-        }
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <Chip
-        label="-17%"
-        size="small"
+    <>
+      <Card
         sx={{
-          position: 'absolute',
-          top: 8,
-          left: 8,
-          zIndex: 2,
-          bgcolor: 'error.main',
-          color: 'white'
+          width: '100%',
+          height: 360,
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          borderRadius: 2,
+          overflow: 'hidden',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-8px)',
+            boxShadow: '0 16px 32px rgba(255, 71, 87, 0.2)'
+          }
         }}
-      />
-
-      <IconButton
-        size="small"
-        sx={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          zIndex: 2,
-          bgcolor: 'rgba(255,255,255,0.9)'
-        }}
-        onClick={() => setIsFavorite(!isFavorite)}
       >
-        {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
-      </IconButton>
-
-      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-        <CardMedia
-          component="img"
-          height="200"
-          image={getImageUrl(product.thumbnail)}
-          alt={product.name}
+        {/* Discount Badge */}
+        <Chip
+          label={`-${discountPercentage}%`}
           sx={{
-            objectFit: 'cover',
-            transition: 'transform 0.3s ease',
-            transform: isHovered ? 'scale(1.05)' : 'scale(1)'
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            zIndex: 10,
+            fontWeight: 'bold',
+            fontSize: '0.75rem',
+            background: 'linear-gradient(45deg, #ff4757 30%, #ff3742 90%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(255, 71, 87, 0.4)',
+            height: 24,
+            minWidth: 48,
+            borderRadius: '4px'
           }}
         />
-        
-        {isHovered && (
-          <Box
+
+        {/* Product Image */}
+        <Box sx={{ position: 'relative', height: 200 /* Chiều cao cố định cho ảnh */ }}>
+          <CardMedia
+            component="img"
+            image={getImageUrl(product.thumbnail)}
+            alt={product.name}
             sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              padding: '10px',
+              backgroundColor: '#f8f9fa'
+            }}
+          />
+          
+          {/* Flash Sale Progress Bar */}
+          {product.isFlashSale && product.flashSaleData && (
+            <Box sx={{
               position: 'absolute',
-              top: 0,
+              bottom: 0,
               left: 0,
               right: 0,
-              bottom: 0,
-              bgcolor: 'rgba(0,0,0,0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <Button
-              component={Link}
-              to={`/product/${product.id}`}
-              variant="contained"
-              startIcon={<Visibility />}
-              size="small"
-              sx={{ bgcolor: 'white', color: 'text.primary' }}
-            >
-              Xem chi tiết
-            </Button>
-          </Box>
-        )}
-      </Box>
-
-      <CardContent sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
-        <Typography
-          variant="h6"
-          component={Link}
-          to={`/product/${product.id}`}
-          sx={{
-            textDecoration: 'none',
-            color: 'text.primary',
-            fontWeight: 600,
-            fontSize: '1rem',
-            lineHeight: 1.3,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            mb: 1,
-            minHeight: '2.6rem',
-            '&:hover': { color: 'primary.main' }
-          }}
-        >
-          {product.name}
-        </Typography>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 'auto' }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-            {formatPrice(displayPrice)}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
-          >
-            {formatPrice(originalPrice)}
-          </Typography>
+              zIndex: 3,
+              background: 'rgba(255,255,255,0.9)',
+              p: 1
+            }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem', fontWeight: 600 }}>
+                  Đã bán {product.flashSaleData.sold_quantity}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem', fontWeight: 600 }}>
+                  Còn {product.flashSaleData.remaining_quantity}
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={product.flashSaleData.sold_percentage}
+                sx={{
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: '#ecf0f1',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: '#ff4757',
+                    borderRadius: 2
+                  }
+                }}
+              />
+            </Box>
+          )}
         </Box>
 
-        <Button
-          fullWidth
-          variant="contained"
-          startIcon={<ShoppingCart />}
-          disabled={displayPrice === 0}
-          onClick={handleAddToCart}
-          size="small"
-          sx={{
-            bgcolor: displayPrice > 0 ? 'primary.main' : 'grey.400',
-            '&:hover': {
-              bgcolor: displayPrice > 0 ? 'primary.dark' : 'grey.400'
-            }
-          }}
-        >
-          {displayPrice === 0 ? 'Liên hệ' : 'Thêm vào giỏ'}
-        </Button>
-      </CardContent>
-      
+        {/* Product Info */}
+        <CardContent sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
+          <Typography
+            variant="subtitle1"
+            component={Link}
+            to={`/product/${product.id}`}
+            sx={{
+              textDecoration: 'none',
+              color: '#2c3e50',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              lineHeight: 1.4,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              mb: 1.5,
+              height: '2.8rem', // Chiều cao cố định cho tên sản phẩm
+              '&:hover': {
+                color: '#ff4757'
+              }
+            }}
+          >
+            {product.name}
+          </Typography>
+
+          {/* Price */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <Typography
+              variant="h6"
+              sx={{ 
+                fontWeight: 700, 
+                fontSize: '1rem',
+                color: '#ff4757'
+              }}
+            >
+              {formatPrice(displayPrice)}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ 
+                textDecoration: 'line-through',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                color: '#999'
+              }}
+            >
+              {formatPrice(originalPrice)}
+            </Typography>
+          </Box>
+          
+          {/* Buy Button */}
+          <Box sx={{ mt: 'auto' }}>
+            <Box
+              onClick={async () => {
+                // Kiểm tra còn hàng không
+                if (product.flashSaleData && product.flashSaleData.remaining_quantity <= 0) {
+                  setSnackbar({
+                    open: true,
+                    message: 'Sản phẩm đã hết hàng!',
+                    severity: 'error'
+                  });
+                  return;
+                }
+                
+                try {
+                  // Kiểm tra đăng nhập
+                  const token = localStorage.getItem('token');
+                  if (!token) {
+                    setSnackbar({
+                      open: true,
+                      message: 'Vui lòng đăng nhập để mua sản phẩm!',
+                      severity: 'error'
+                    });
+                    setTimeout(() => window.location.href = '/login', 1500);
+                    return;
+                  }
+                  
+                  const { cartService } = await import('../services/cart.service');
+                  await cartService.addToCart(product.id, null, 1, product.price);
+                  
+                  // Cập nhật Flash Sale
+                  const { flashSaleService } = await import('../services/flashSale.service');
+                  await flashSaleService.getCurrentFlashSale(true); // Force refresh
+                  
+                  setSnackbar({
+                    open: true,
+                    message: 'Đã thêm sản phẩm vào giỏ hàng!',
+                    severity: 'success'
+                  });
+                } catch (error) {
+                  console.error('Error adding to cart:', error);
+                  setSnackbar({
+                    open: true,
+                    message: 'Có lỗi khi thêm vào giỏ hàng!',
+                    severity: 'error'
+                  });
+                }
+              }}
+              sx={{
+                backgroundColor: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? '#cccccc' : '#ff4757',
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                py: 1,
+                textAlign: 'center',
+                borderRadius: 1,
+                cursor: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'not-allowed' : 'pointer',
+                boxShadow: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'none' : '0 4px 12px rgba(255, 71, 87, 0.3)',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? '#cccccc' : '#ff3742',
+                  transform: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'none' : 'translateY(-2px)',
+                  boxShadow: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'none' : '0 6px 16px rgba(255, 71, 87, 0.4)'
+                }
+              }}
+            >
+              {product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'ĐÃ HẾT HÀNG' : 'MUA NGAY'}
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Snackbar Notification */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={2000}
+        autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
@@ -245,10 +281,8 @@ const FastProductCard: React.FC<Props> = memo(({ product }) => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Card>
+    </>
   );
-});
-
-FastProductCard.displayName = 'FastProductCard';
+};
 
 export default FastProductCard;

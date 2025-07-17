@@ -12,7 +12,7 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 
 const axiosInstance = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
-  timeout: 20000,
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
@@ -22,7 +22,19 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
-    console.error("API Error:", error.response?.data || error.message);
+    // Log chi tiết lỗi để debug CORS
+    if (error.code === 'ECONNABORTED') {
+      console.warn(`API Timeout: ${error.config?.url}`);
+    } else if (error.response?.status >= 500) {
+      console.error("Server Error:", error.response?.data || error.message);
+    } else if (!error.response) {
+      console.error("API Error Details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method
+      });
+    }
     
     // Nếu lỗi 401, xóa token và redirect về login
     if (error.response?.status === 401) {
