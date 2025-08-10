@@ -382,51 +382,86 @@ const ProductDetail = () => {
                       gap: 2,
                       maxWidth: 600
                     }}>
-                      {product.variants.map((variant, index) => (
-                        <Button
-                          key={variant.id}
-                          variant={selectedVariant === index ? "contained" : "outlined"}
-                          onClick={() => setSelectedVariant(index)}
-                          sx={{
-                            minWidth: 120,
-                            px: 3,
-                            py: 2,
-                            fontSize: '0.9rem',
-                            textTransform: 'none',
-                            backgroundColor: selectedVariant === index ? '#2196F3' : 'white',
-                            borderColor: selectedVariant === index ? '#2196F3' : '#e0e0e0',
-                            color: selectedVariant === index ? 'white' : '#333',
-                            borderRadius: 3,
-                            boxShadow: selectedVariant === index ? '0 4px 12px rgba(33, 150, 243, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
-                            '&:hover': {
-                              backgroundColor: selectedVariant === index ? '#1976D2' : '#f8fafc',
-                              borderColor: '#2196F3',
-                              transform: 'translateY(-2px)',
-                              boxShadow: selectedVariant === index ? '0 6px 16px rgba(33, 150, 243, 0.4)' : '0 4px 12px rgba(0,0,0,0.15)'
-                            },
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: 1,
-                            transition: 'all 0.3s ease'
-                          }}
-                        >
-                          <Box sx={{ fontWeight: 600, lineHeight: 1.2, textAlign: 'center' }}>
-                            {variant.Name}
-                          </Box>
-                          <Box sx={{ 
-                            fontSize: '0.85rem', 
-                            fontWeight: 700, 
-                            color: selectedVariant === index ? 'rgba(255,255,255,0.9)' : '#2196F3',
-                            background: selectedVariant === index ? 'rgba(255,255,255,0.1)' : 'rgba(33, 150, 243, 0.1)',
-                            px: 1.5,
-                            py: 0.5,
-                            borderRadius: 2
-                          }}>
-                            {formatPrice(variant.price)}
-                          </Box>
-                        </Button>
-                      ))}
+                      {product.variants.map((variant, index) => {
+                        const isOutOfStock = variant.stock <= 0;
+
+                        return (
+                          <Button
+                            key={variant.id}
+                            variant={selectedVariant === index ? "contained" : "outlined"}
+                            onClick={() => !isOutOfStock && setSelectedVariant(index)}
+                            disabled={isOutOfStock}
+                            sx={{
+                              minWidth: 120,
+                              px: 3,
+                              py: 2,
+                              fontSize: '0.9rem',
+                              textTransform: 'none',
+                              backgroundColor: selectedVariant === index ? '#2196F3' : 'white',
+                              borderColor: selectedVariant === index ? '#2196F3' : '#e0e0e0',
+                              color: selectedVariant === index ? 'white' : '#333',
+                              borderRadius: 3,
+                              boxShadow: selectedVariant === index 
+                                ? '0 4px 12px rgba(33, 150, 243, 0.3)' 
+                                : '0 2px 8px rgba(0,0,0,0.1)',
+                              opacity: isOutOfStock ? 0.5 : 1,
+                              position: 'relative',
+                              '&:hover': {
+                                backgroundColor: !isOutOfStock && (selectedVariant === index ? '#1976D2' : '#f8fafc'),
+                                borderColor: !isOutOfStock && '#2196F3',
+                                transform: !isOutOfStock && 'translateY(-2px)',
+                                boxShadow: !isOutOfStock && (selectedVariant === index 
+                                  ? '0 6px 16px rgba(33, 150, 243, 0.4)' 
+                                  : '0 4px 12px rgba(0,0,0,0.15)')
+                              },
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: 1,
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            <Box sx={{ fontWeight: 600, lineHeight: 1.2, textAlign: 'center' }}>
+                              {variant.Name}
+                            </Box>
+                            <Box
+                              sx={{
+                                fontSize: '0.85rem',
+                                fontWeight: 700,
+                                color: selectedVariant === index 
+                                  ? 'rgba(255,255,255,0.9)' 
+                                  : '#2196F3',
+                                background: selectedVariant === index 
+                                  ? 'rgba(255,255,255,0.1)' 
+                                  : 'rgba(33, 150, 243, 0.1)',
+                                px: 1.5,
+                                py: 0.5,
+                                borderRadius: 2
+                              }}
+                            >
+                              {formatPrice(variant.price)}
+                            </Box>
+                            {isOutOfStock && (
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  top: 6,
+                                  right: 6,
+                                  backgroundColor: '#ff4444',
+                                  color: 'white',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 'bold',
+                                  px: 1,
+                                  py: 0.3,
+                                  borderRadius: 1
+                                }}
+                              >
+                                Hết hàng
+                              </Box>
+                            )}
+                          </Button>
+                        );
+                      })}
                     </Box>
                   </Box>
                 )}
