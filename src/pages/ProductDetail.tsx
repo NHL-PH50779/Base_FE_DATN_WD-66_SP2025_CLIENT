@@ -107,6 +107,12 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = async () => {
+    // Kiểm tra hết hàng trước khi thêm
+    if (isOutOfStock) {
+      showSnackbar('Sản phẩm đã hết hàng!', 'error');
+      return;
+    }
+    
     // Kiểm tra có giá sản phẩm không
     if (displayPrice <= 0) {
       showSnackbar('Sản phẩm chưa có giá!', 'error');
@@ -115,7 +121,6 @@ const ProductDetail = () => {
     
     // Kiểm tra đăng nhập
     const token = localStorage.getItem('token');
-    console.log('Current token:', token);
     if (!token) {
       showSnackbar('Vui lòng đăng nhập để thêm vào giỏ hàng!', 'error');
       setTimeout(() => navigate('/login'), 1500);
@@ -124,13 +129,21 @@ const ProductDetail = () => {
     
     setAddingToCart(true);
     try {
-      await cartService.addToCart(
+      const result = await cartService.addToCart(
         product.id, 
         currentVariant?.id || null, 
         quantity, 
         displayPrice
       );
+      
+      // Kiểm tra nếu là Flash Sale đã sở hữu
+      if (result?.isFlashSaleOwned) {
+        showSnackbar(result.message, 'info');
+        return;
+      }
+      
       showSnackbar('Đã thêm vào giỏ hàng!', 'success');
+      
     } catch (error: any) {
       console.error('Error adding to cart:', error);
       if (error.response?.status === 401) {
@@ -139,7 +152,8 @@ const ProductDetail = () => {
         localStorage.removeItem('user');
         setTimeout(() => navigate('/login'), 1500);
       } else {
-        showSnackbar('Có lỗi xảy ra khi thêm vào giỏ hàng!', 'error');
+        const errorMessage = error.message || error.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng!';
+        showSnackbar(errorMessage, 'error');
       }
     } finally {
       setAddingToCart(false);
@@ -179,6 +193,11 @@ const ProductDetail = () => {
   const displayPrice = currentVariant?.price || Number(product.price) || 0;
   const originalPrice = displayPrice * 1.3;
   const discount = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
+  
+  // Tính tổng stock của tất cả variants
+  const totalStock = product.variants?.reduce((total, variant) => total + (variant.stock || 0), 0) || product.stock || 0;
+  const currentStock = currentVariant?.stock || product.stock || 0;
+  const isOutOfStock = currentStock <= 0;
 
   return (
     <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
@@ -441,27 +460,36 @@ const ProductDetail = () => {
                       <IconButton
                         size="small"
                         onClick={() => handleQuantityChange(-1)}
-                        disabled={quantity <= 1}
+                        disabled={quantity <= 1 || isOutOfStock}
                         sx={{ borderRadius: 0, px: 1 }}
                       >
                         <Remove fontSize="small" />
                       </IconButton>
                       <Typography sx={{ px: 2, minWidth: 40, textAlign: 'center', borderLeft: '1px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
-                        {quantity}
+                        {isOutOfStock ? 0 : quantity}
                       </Typography>
                       <IconButton
                         size="small"
                         onClick={() => handleQuantityChange(1)}
-                        disabled={quantity >= (currentVariant?.stock || product?.stock || 0)}
+                        disabled={quantity >= currentStock || isOutOfStock}
                         sx={{ borderRadius: 0, px: 1 }}
                       >
                         <Add fontSize="small" />
                       </IconButton>
                     </Box>
-                    <Typography variant="body2" color={quantity >= (currentVariant?.stock || product.stock || 0) ? "error" : "text.secondary"}>
-                      {currentVariant?.stock || product.stock || 0} sản phẩm có sẵn
-                      {quantity >= (currentVariant?.stock || product.stock || 0) && " (Đã chọn tối đa)"}
-                    </Typography>
+                    <Box>
+                      <Typography variant="body2" color={isOutOfStock ? "error" : "text.secondary"}>
+                        {isOutOfStock ? (
+                          <span style={{ color: '#f44336', fontWeight: 'bold' }}>Hết hàng</span>
+                        ) : (
+                          `${currentStock} sản phẩm có sẵn`
+                        )}
+                        {quantity >= currentStock && currentStock > 0 && " (Đã chọn tối đa)"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Tổng kho: {totalStock} sản phẩm
+                      </Typography>
+                    </Box>
                   </Stack>
                 </Box>
 
@@ -471,25 +499,30 @@ const ProductDetail = () => {
                     variant="outlined"
                     startIcon={<ShoppingCart />}
                     onClick={handleAddToCart}
-                    disabled={addingToCart || displayPrice <= 0}
+                    disabled={addingToCart || displayPrice <= 0 || isOutOfStock}
                     sx={{
                       flex: 1,
                       py: 1.5,
-                      borderColor: '#2196F3',
-                      color: '#2196F3',
+                      borderColor: isOutOfStock ? '#ccc' : '#2196F3',
+                      color: isOutOfStock ? '#ccc' : '#2196F3',
                       textTransform: 'none',
                       fontSize: '1rem',
                       '&:hover': {
-                        borderColor: '#1976D2',
-                        backgroundColor: '#f3f8ff'
+                        borderColor: isOutOfStock ? '#ccc' : '#1976D2',
+                        backgroundColor: isOutOfStock ? 'transparent' : '#f3f8ff'
                       }
                     }}
                   >
-                    {addingToCart ? 'Đang thêm...' : 'Thêm Vào Giỏ Hàng'}
+                    {isOutOfStock ? 'Hết hàng' : (addingToCart ? 'Đang thêm...' : 'Thêm Vào Giỏ Hàng')}
                   </Button>
                   <Button
                     variant="contained"
                     onClick={() => {
+                      if (isOutOfStock) {
+                        showSnackbar('Sản phẩm đã hết hàng!', 'error');
+                        return;
+                      }
+                      
                       // Chuyển trực tiếp sang thanh toán với sản phẩm này
                       const orderData = {
                         items: [{
@@ -504,19 +537,19 @@ const ProductDetail = () => {
                       };
                       navigate('/checkout', { state: { directBuy: true, orderData } });
                     }}
-                    disabled={displayPrice <= 0}
+                    disabled={displayPrice <= 0 || isOutOfStock}
                     sx={{
                       flex: 1,
                       py: 1.5,
-                      backgroundColor: '#2196F3',
+                      backgroundColor: isOutOfStock ? '#ccc' : '#2196F3',
                       textTransform: 'none',
                       fontSize: '1rem',
                       '&:hover': {
-                        backgroundColor: '#1976D2'
+                        backgroundColor: isOutOfStock ? '#ccc' : '#1976D2'
                       }
                     }}
                   >
-                    Mua Ngay
+                    {isOutOfStock ? 'Hết hàng' : 'Mua Ngay'}
                   </Button>
                 </Stack>
 

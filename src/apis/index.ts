@@ -1,5 +1,18 @@
 import axios from "axios";
 
+// Network quality detection
+let networkQuality = 'good';
+let lastRequestTime = Date.now();
+
+// Adaptive timeout
+const getAdaptiveTimeout = () => {
+  switch (networkQuality) {
+    case 'slow': return 60000;
+    case 'medium': return 45000;
+    default: return 30000;
+  }
+};
+
 const instance = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
   timeout: 30000,
@@ -9,29 +22,74 @@ const instance = axios.create({
     "X-Requested-With": "XMLHttpRequest",
   },
   withCredentials: false,
+  validateStatus: (status) => status < 500,
 });
 
-// Interceptor để xử lý Git conflicts và timeout
+// Response interceptor với adaptive retry
 instance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.code === 'ECONNABORTED') {
-      console.warn('API Timeout:', error.config?.url);
-    } else {
-      console.error("API Error Details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url,
-        method: error.config?.method
-      });
+  (response) => {
+    // Update network quality
+    const responseTime = Date.now() - lastRequestTime;
+    if (responseTime > 10000) networkQuality = 'slow';
+    else if (responseTime > 5000) networkQuality = 'medium';
+    else networkQuality = 'good';
+    
+    return response;
+  },
+  async (error) => {
+    const config = error.config;
+    
+    // Timeout handling với retry
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      console.warn(`API Timeout: ${config?.url} (Network: ${networkQuality})`);
+      
+      if (!config._retryCount) config._retryCount = 0;
+      
+      if (config._retryCount < 3) {
+        config._retryCount++;
+        config.timeout = getAdaptiveTimeout() + (config._retryCount * 15000);
+        
+        console.log(`Retrying (${config._retryCount}/3) with timeout: ${config.timeout}ms`);
+        await new Promise(resolve => setTimeout(resolve, config._retryCount * 3000));
+        return instance(config);
+      }
     }
+    
+    // Network error retry
+    if (!error.response && navigator.onLine) {
+      if (!config._retryCount) config._retryCount = 0;
+      
+      if (config._retryCount < 2) {
+        config._retryCount++;
+        config.timeout = getAdaptiveTimeout();
+        
+        console.log(`Network retry (${config._retryCount}/2)`);
+        await new Promise(resolve => setTimeout(resolve, config._retryCount * 5000));
+        return instance(config);
+      }
+    }
+    
+    console.error("API Error:", {
+      status: error.response?.status,
+      url: config?.url,
+      online: navigator.onLine,
+      networkQuality
+    });
+    
     return Promise.reject(error);
   }
 );
 
-// Interceptor để thêm token
+// Request interceptor với adaptive timeout
 instance.interceptors.request.use(
   (config) => {
+    lastRequestTime = Date.now();
+    
+    // Set adaptive timeout
+    if (!config.timeout || config.timeout === 30000) {
+      config.timeout = getAdaptiveTimeout();
+    }
+    
     const token = localStorage.getItem('token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;

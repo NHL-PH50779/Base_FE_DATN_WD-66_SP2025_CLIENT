@@ -58,10 +58,10 @@ const FlashSale: React.FC = () => {
     fetchCurrentFlashSale();
     fetchUpcomingFlashSale();
     
-    // Thiết lập interval để cập nhật dữ liệu mỗi 30 giây
+    // Thiết lập interval để cập nhật dữ liệu mỗi 5 giây
     const intervalId = setInterval(() => {
       fetchCurrentFlashSale(true);
-    }, 30000);
+    }, 5000);
     
     return () => clearInterval(intervalId);
   }, [fetchCurrentFlashSale]);
@@ -128,9 +128,7 @@ const FlashSale: React.FC = () => {
 
   const handlePurchaseSuccess = () => {
     // Refresh flash sale data after successful purchase
-    setTimeout(() => {
-      fetchCurrentFlashSale(true); // Force refresh
-    }, 1000);
+    fetchCurrentFlashSale(true); // Force refresh ngay lập tức
   };
 
   // Hiển thị Flash Sale sắp diễn ra
@@ -273,6 +271,7 @@ const FlashSale: React.FC = () => {
                           discount_percentage: item.discount_percentage
                         }
                       }}
+                      onPurchaseSuccess={handlePurchaseSuccess}
                     />
                   </Box>
                 </motion.div>

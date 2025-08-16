@@ -48,35 +48,32 @@ export const authService = {
       
       console.log('Login response:', result);
       
-      if (result.token) {
+      if (result.token && result.user) {
         localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
         
-        // Đợi một chút để token được set trong header
-        setTimeout(async () => {
-          try {
-            const userResponse = await instance.get('/user');
-            localStorage.setItem('user', JSON.stringify(userResponse.data.user));
-            console.log('Updated user data from server:', userResponse.data.user);
-          } catch (error) {
-            console.error('Error fetching user data:', error);
-            localStorage.setItem('user', JSON.stringify(result.user));
-          }
-        }, 100);
-        
-        console.log('Token saved:', result.token);
+        console.log('Login successful:', {
+          token: result.token.substring(0, 20) + '...',
+          user: result.user
+        });
       }
       
       return result;
     } catch (error) {
+      console.error('Login service error:', error);
       throw error;
     }
   },
 
   register: async (data: RegisterData) => {
     try {
+      console.log('Sending register data:', data);
       const response = await instance.post('/register', data);
+      console.log('Register response:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Register service error:', error);
+      console.error('Error response data:', error.response?.data);
       throw error;
     }
   },

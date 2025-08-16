@@ -49,6 +49,7 @@ import {
   Close
 } from '@mui/icons-material';
 import { orderService } from '../services/order.service';
+import axios from 'axios';
 
 interface WalletTransaction {
   id: number;
@@ -108,8 +109,27 @@ const Wallet = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
+    // Debug authentication
+    const debugAuth = async () => {
+      try {
+        const authResult = await orderService.testAuth();
+        console.log('Auth debug:', authResult);
+      } catch (error) {
+        console.error('Auth debug error:', error);
+      }
+    };
+    
+    debugAuth();
     fetchWalletData();
     fetchTransactions();
+    
+    // Auto-refresh mỗi 30 giây
+    const interval = setInterval(() => {
+      fetchWalletData();
+      fetchTransactions();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -120,6 +140,7 @@ const Wallet = () => {
     try {
       setLoading(true);
       const response = await orderService.getWallet();
+      console.log('Wallet response:', response);
       setWalletData(response.data);
     } catch (error: any) {
       console.error('Error fetching wallet:', error);
@@ -138,12 +159,12 @@ const Wallet = () => {
       if (filters.to_date) params.append('to_date', filters.to_date);
       params.append('page', currentPage.toString());
       
-      const response = await fetch(`http://127.0.0.1:8000/api/wallet/transactions?${params}`);
-      const data = await response.json();
+      const response = await axios.get(`http://127.0.0.1:8000/api/wallet/transactions?${params}`);
+      console.log('Transactions response:', response.data);
       
-      if (data.success) {
-        setTransactions(data.data.data || []);
-        setTotalPages(data.data.last_page || 1);
+      if (response.data.success) {
+        setTransactions(response.data.data.data || []);
+        setTotalPages(response.data.data.last_page || 1);
       }
     } catch (error: any) {
       console.error('Error fetching transactions:', error);
@@ -171,12 +192,10 @@ const Wallet = () => {
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'refund':
+      case 'credit':
         return <TrendingUp sx={{ color: '#4CAF50' }} />;
-      case 'payment':
+      case 'debit':
         return <TrendingDown sx={{ color: '#f44336' }} />;
-      case 'deposit':
-        return <TrendingUp sx={{ color: '#2196F3' }} />;
       default:
         return <Refresh />;
     }
@@ -184,12 +203,10 @@ const Wallet = () => {
 
   const getTransactionColor = (type: string) => {
     switch (type) {
-      case 'refund':
+      case 'credit':
         return 'success';
-      case 'payment':
+      case 'debit':
         return 'error';
-      case 'deposit':
-        return 'primary';
       default:
         return 'default';
     }
@@ -197,12 +214,10 @@ const Wallet = () => {
 
   const getTransactionLabel = (type: string) => {
     switch (type) {
-      case 'refund':
-        return 'Hoàn tiền';
-      case 'payment':
-        return 'Thanh toán';
-      case 'deposit':
-        return 'Nạp tiền';
+      case 'credit':
+        return 'Tiền vào';
+      case 'debit':
+        return 'Tiền ra';
       default:
         return 'Khác';
     }
@@ -269,15 +284,52 @@ const Wallet = () => {
         {/* Transactions */}
         <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
           <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#2c3e50' }}>
-              Lịch sử giao dịch
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                Lịch sử giao dịch
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Refresh />}
+                  onClick={() => { fetchWalletData(); fetchTransactions(); }}
+                  size="small"
+                >
+                  Cập nhật
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={async () => {
+                    try {
+                      const result = await orderService.createTestOrder();
+                      console.log('Test order created:', result);
+                      alert('Tạo đơn hàng test thành công! ID: ' + result.order.id);
+                    } catch (error) {
+                      console.error('Error:', error);
+                      alert('Lỗi tạo đơn hàng test');
+                    }
+                  }}
+                  size="small"
+                >
+                  Tạo đơn test
+                </Button>
+              </Box>
+            </Box>
 
-            {!walletData?.transactions || walletData.transactions.length === 0 ? (
+            {transactions.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography variant="h6" color="text.secondary">
                   Chưa có giao dịch nào
                 </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<Refresh />}
+                  onClick={fetchTransactions}
+                  sx={{ mt: 2 }}
+                >
+                  Tải lại
+                </Button>
               </Box>
             ) : (
               <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
@@ -291,7 +343,7 @@ const Wallet = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {walletData.transactions.map((transaction) => (
+                    {transactions.map((transaction) => (
                       <TableRow key={transaction.id} sx={{ '&:hover': { backgroundColor: '#f8fafc' } }}>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -313,12 +365,10 @@ const Wallet = () => {
                             variant="body1" 
                             sx={{ 
                               fontWeight: 600,
-                              color: transaction.type === 'refund' || transaction.type === 'deposit' 
-                                ? '#4CAF50' 
-                                : '#f44336'
+                              color: transaction.type === 'credit' ? '#4CAF50' : '#f44336'
                             }}
                           >
-                            {transaction.type === 'refund' || transaction.type === 'deposit' ? '+' : '-'}
+                            {transaction.type === 'credit' ? '+' : '-'}
                             {formatPrice(transaction.amount)}
                           </Typography>
                         </TableCell>

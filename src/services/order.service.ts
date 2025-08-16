@@ -98,6 +98,28 @@ export const orderService = {
     }
   },
 
+  // Test authentication
+  testAuth: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/test-auth`);
+      return response.data;
+    } catch (error) {
+      console.error('Error testing auth:', error);
+      throw error;
+    }
+  },
+
+  // Tạo đơn hàng test
+  createTestOrder: async () => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/admin/create-test-order`);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating test order:', error);
+      throw error;
+    }
+  },
+
   // Update order status - PUT /api/orders/{id}/status
   updateOrderStatus: async (orderId: number, statusId: number) => {
     const response = await axios.put(`${API_BASE_URL}/orders/${orderId}/status`, { status_id: statusId });
@@ -112,7 +134,7 @@ export const orderService = {
 
   // Admin: Xử lý yêu cầu hoàn hàng
   processRefund: async (orderId: number, approve: boolean, adminNote?: string) => {
-    const response = await axios.put(`${API_BASE_URL}/admin/orders/${orderId}/process-refund`, {
+    const response = await axios.post(`${API_BASE_URL}/admin/orders/${orderId}/process-refund`, {
       approve: approve,
       admin_note: adminNote
     });

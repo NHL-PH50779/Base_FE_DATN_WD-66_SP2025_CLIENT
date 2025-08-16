@@ -12,28 +12,57 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 
 const axiosInstance = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
-  timeout: 30000,
+  timeout: 10000, // Giảm xuống 10s để phát hiện timeout nhanh hơn
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
   },
+  // Thêm retry config
+  retry: 3,
+  retryDelay: 1000,
 });
 
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error) => {
-    // Log chi tiết lỗi để debug CORS
-    if (error.code === 'ECONNABORTED') {
-      console.warn(`API Timeout: ${error.config?.url}`);
-    } else if (error.response?.status >= 500) {
-      console.error("Server Error:", error.response?.data || error.message);
-    } else if (!error.response) {
-      console.error("API Error Details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url,
-        method: error.config?.method
+  async (error) => {
+    const config = error.config;
+    
+    // Xử lý timeout và lỗi mạng
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      console.warn(`API Timeout: ${config?.url}`);
+      
+      // Retry logic cho timeout
+      if (config && !config._retry && config.retry > 0) {
+        config._retry = true;
+        config.retry -= 1;
+        
+        // Đợi trước khi retry
+        await new Promise(resolve => setTimeout(resolve, config.retryDelay || 1000));
+        return axiosInstance(config);
+      }
+    }
+    
+    // Xử lý lỗi mạng (không có response)
+    if (!error.response) {
+      console.error("Network Error:", {
+        url: config?.url,
+        method: config?.method,
+        online: navigator.onLine
       });
+      
+      // Retry cho lỗi mạng
+      if (config && !config._retry && config.retry > 0 && navigator.onLine) {
+        config._retry = true;
+        config.retry -= 1;
+        
+        await new Promise(resolve => setTimeout(resolve, config.retryDelay || 2000));
+        return axiosInstance(config);
+      }
+    }
+    
+    // Xử lý lỗi server
+    if (error.response?.status >= 500) {
+      console.error("Server Error:", error.response?.data || error.message);
     }
     
     // Nếu lỗi 401, xóa token và redirect về login

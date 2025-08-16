@@ -34,26 +34,40 @@ export const cartService = {
   // Thêm vào giỏ hàng
   addToCart: async (productId: number, productVariantId: number | null, quantity: number, flashSalePrice?: number) => {
     try {
-      const payload = {
+      const payload: any = {
         product_id: productId,
-        product_variant_id: productVariantId,
         quantity
       };
       
-      // Chỉ thêm price nếu có flash sale
-      if (flashSalePrice) {
+      // Chỉ thêm product_variant_id nếu không null
+      if (productVariantId !== null) {
+        payload.product_variant_id = productVariantId;
+      }
+      
+      // Chỉ thêm price nếu có flash sale và > 0
+      if (flashSalePrice && flashSalePrice > 0) {
         payload.price = flashSalePrice;
       }
       
       console.log('Adding to cart with payload:', payload); // Debug
       
       const response = await instance.post("/cart", payload);
-      // Cập nhật store
-      useCartStore.getState().incrementCart();
+      // Không tự động increment - sẽ được sync khi fetch cart
       return parseResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding to cart:", error);
-      throw error;
+      const errorMessage = error.response?.data?.message || 'Lỗi khi thêm vào giỏ hàng';
+      
+      // Kiểm tra nếu là lỗi đã mua Flash Sale - trả về object đặc biệt thay vì throw error
+      if (errorMessage.includes('đã sở hữu sản phẩm Flash Sale')) {
+        return {
+          success: false,
+          isFlashSaleOwned: true,
+          message: errorMessage
+        };
+      }
+      
+      throw new Error(errorMessage);
     }
   },
 
@@ -64,9 +78,11 @@ export const cartService = {
         quantity
       });
       return parseResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating cart item:", error);
-      throw error;
+      // Throw error với message từ backend
+      const errorMessage = error.response?.data?.message || 'Lỗi khi cập nhật giỏ hàng';
+      throw new Error(errorMessage);
     }
   },
 
@@ -74,8 +90,7 @@ export const cartService = {
   removeFromCart: async (cartItemId: number) => {
     try {
       const response = await instance.delete(`/cart/${cartItemId}`);
-      // Cập nhật store
-      useCartStore.getState().decrementCart();
+      // Không tự động decrement - sẽ được sync khi fetch cart
       return parseResponse(response);
     } catch (error) {
       console.error("Error removing from cart:", error);

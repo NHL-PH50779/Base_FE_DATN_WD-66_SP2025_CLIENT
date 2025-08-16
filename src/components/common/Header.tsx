@@ -166,7 +166,6 @@ const Header = () => {
       hasDropdown: true,
       onClick: handleCategoryClick
     },
-    { label: "Flash Sale", link: "/flash-sale" },
     { label: "Đơn hàng", link: "/orders" },
     { label: "Về chúng tôi", link: "/about" },
     { label: "Liên hệ", link: "/contact" },

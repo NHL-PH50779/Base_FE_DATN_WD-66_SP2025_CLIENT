@@ -94,6 +94,7 @@ const OrderDetail = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [confirmDialog, setConfirmDialog] = useState({ open: false, action: '', title: '', message: '' });
   const [cancelReason, setCancelReason] = useState('');
+  const [refundReason, setRefundReason] = useState('');
 
   // Order status mapping with timeline
   const orderStatuses = {
@@ -102,10 +103,13 @@ const OrderDetail = () => {
     3: { label: 'Đang vận chuyển', color: 'primary', icon: <LocalShipping />, description: 'Đơn hàng đang trên đường giao đến bạn' },
     4: { label: 'Đã giao hàng', color: 'success', icon: <CheckCircle />, description: 'Đơn hàng đã được giao thành công' },
     5: { label: 'Hoàn thành', color: 'success', icon: <Done />, description: 'Đơn hàng đã hoàn thành' },
-    6: { label: 'Đã hủy', color: 'error', icon: <Cancel />, description: 'Đơn hàng đã bị hủy' }
+    6: { label: 'Đã hủy', color: 'error', icon: <Cancel />, description: 'Đơn hàng đã bị hủy' },
+    7: { label: 'Yêu cầu hoàn hàng', color: 'warning', icon: <HourglassEmpty />, description: 'Yêu cầu hoàn hàng đang chờ xử lý' },
+    8: { label: 'Đồng ý hoàn hàng', color: 'success', icon: <CheckCircle />, description: 'Yêu cầu hoàn hàng đã được chấp nhận và hoàn tiền' },
+    9: { label: 'Từ chối hoàn hàng', color: 'error', icon: <Cancel />, description: 'Yêu cầu hoàn hàng đã bị từ chối' }
   };
 
-  // Hiển thị trạng thái đặc biệt cho đơn VNPay đang chờ duyệt hủy
+  // Hiển thị trạng thái đặc biệt
   const getDisplayStatus = (order: Order) => {
     if (order.cancel_requested && order.order_status_id !== 6) {
       return { label: 'Đang chờ duyệt hủy', color: 'warning', icon: <HourglassEmpty />, description: 'Yêu cầu hủy đang chờ admin xác nhận' };
@@ -126,6 +130,10 @@ const OrderDetail = () => {
     if (order.order_status_id === 5) {
       return { label: 'Đã thanh toán', color: 'success' };
     }
+    // Nếu đơn hàng đã được hoàn hàng (trạng thái 8), hiển thị "Đã hoàn tiền"
+    if (order.order_status_id === 8) {
+      return { label: 'Đã hoàn tiền', color: 'info' };
+    }
     // Nếu không, hiển thị theo trạng thái thực tế
     return paymentStatuses[order.payment_status_id as keyof typeof paymentStatuses] || { label: 'Chưa thanh toán', color: 'warning' };
   };
@@ -142,12 +150,12 @@ const OrderDetail = () => {
     if (id) {
       fetchOrderDetail(parseInt(id));
       
-      // Auto-refresh mỗi 15 giây để cập nhật trạng thái
-      const interval = setInterval(() => {
-        fetchOrderDetail(parseInt(id));
-      }, 15000);
+      // Bỏ auto-refresh để tránh reload liên tục
+      // const interval = setInterval(() => {
+      //   fetchOrderDetail(parseInt(id));
+      // }, 5000);
       
-      return () => clearInterval(interval);
+      // return () => clearInterval(interval);
     }
   }, [id]);
 
@@ -210,7 +218,7 @@ const OrderDetail = () => {
       open: true,
       action: 'request_refund',
       title: 'Yêu cầu hoàn hàng',
-      message: 'Bạn có chắc chắn muốn yêu cầu hoàn hàng cho đơn hàng này?'
+      message: 'Vui lòng nhập lý do hoàn hàng:'
     });
   };
 
@@ -236,12 +244,14 @@ const OrderDetail = () => {
         showSnackbar('Đã hủy đơn hàng thành công!', 'success');
         await fetchOrderDetail(order.id);
       } else if (confirmDialog.action === 'request_refund') {
-        const reason = 'Khách hàng yêu cầu hoàn hàng';
-        try {
-          showSnackbar('Đã gửi yêu cầu hoàn hàng thành công!', 'success');
-        } catch (error) {
-          showSnackbar('Lỗi khi gửi yêu cầu hoàn hàng!', 'error');
+        if (!refundReason.trim()) {
+          showSnackbar('Vui lòng nhập lý do hoàn hàng!', 'error');
+          return;
         }
+        await orderService.requestRefund(order.id, refundReason);
+        showSnackbar('Đã gửi yêu cầu hoàn hàng thành công!', 'success');
+        await fetchOrderDetail(order.id);
+        setRefundReason('');
       } else if (confirmDialog.action === 'request_cancel_vnpay') {
         if (!cancelReason.trim()) {
           showSnackbar('Vui lòng nhập lý do hủy!', 'error');
@@ -257,6 +267,8 @@ const OrderDetail = () => {
       showSnackbar(error.response?.data?.message || 'Có lỗi xảy ra!', 'error');
     } finally {
       setConfirmDialog({ open: false, action: '', title: '', message: '' });
+      setCancelReason('');
+      setRefundReason('');
     }
   };
 
@@ -312,7 +324,10 @@ const OrderDetail = () => {
   };
 
   const canRequestRefund = (order: Order) => {
-    return order.order_status_id === 4 || order.order_status_id === 5;
+    return (order.order_status_id === 4 || order.order_status_id === 5) && 
+           order.order_status_id !== 7 && 
+           order.order_status_id !== 8 && 
+           order.order_status_id !== 9;
   };
 
 
@@ -843,7 +858,11 @@ const OrderDetail = () => {
       {/* Confirmation Dialog */}
       <Dialog 
         open={confirmDialog.open} 
-        onClose={() => setConfirmDialog({ open: false, action: '', title: '', message: '' })}
+        onClose={() => {
+          setConfirmDialog({ open: false, action: '', title: '', message: '' });
+          setCancelReason('');
+          setRefundReason('');
+        }}
         maxWidth="sm"
         fullWidth
       >
@@ -862,10 +881,26 @@ const OrderDetail = () => {
               required
             />
           )}
+          {confirmDialog.action === 'request_refund' && (
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Lý do hoàn hàng"
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              placeholder="Nhập lý do hoàn hàng..."
+              required
+            />
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 1 }}>
           <Button 
-            onClick={() => setConfirmDialog({ open: false, action: '', title: '', message: '' })}
+            onClick={() => {
+              setConfirmDialog({ open: false, action: '', title: '', message: '' });
+              setCancelReason('');
+              setRefundReason('');
+            }}
             size="large"
           >
             Hủy

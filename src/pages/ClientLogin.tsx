@@ -82,7 +82,7 @@ const ClientLogin = () => {
       showSnackbar('Đăng nhập thành công!', 'success');
       
       setTimeout(() => {
-        if (response.user.role === 'admin' || response.user.role === 'super_admin') {
+        if (response.user && (response.user.role === 'admin' || response.user.role === 'super_admin')) {
           window.location.href = 'http://localhost:5173/admin';
         } else {
           navigate('/home');

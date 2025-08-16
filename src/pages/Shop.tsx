@@ -23,7 +23,8 @@ import {
   AccordionDetails,
   Checkbox,
   FormGroup,
-  FormControlLabel
+  FormControlLabel,
+  Pagination
 } from '@mui/material';
 import { Search, ExpandMore, FilterList } from '@mui/icons-material';
 import { productService } from '../services/product.service';
@@ -48,6 +49,10 @@ const Shop = () => {
   const [selectedRam, setSelectedRam] = useState<string[]>([]);
   const [selectedSsd, setSelectedSsd] = useState<string[]>([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   
   // Available filter options
   const ramOptions = ['4GB', '8GB', '16GB', '32GB', '64GB'];
@@ -166,14 +171,28 @@ const Shop = () => {
     return filtered;
   }, [products, searchTerm, selectedCategory, selectedBrand, sortBy, selectedRam, selectedSsd]);
 
+  // Paginated products
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedBrand, selectedRam, selectedSsd]);
+
   const clearFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedCategory('');
     setSelectedBrand('');
     setSortBy('name');
-
     setSelectedRam([]);
     setSelectedSsd([]);
+    setCurrentPage(1); // Reset to first page
     showSnackbar('Đã xóa tất cả bộ lọc', 'success');
   }, []);
 
@@ -385,21 +404,40 @@ const Shop = () => {
           {/* Quick Filter Bar */}
           <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
-              <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>Sắp xếp theo</InputLabel>
-                <Select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  label="Sắp xếp theo"
-                >
-                  <MenuItem value="name">Tên A-Z</MenuItem>
-                  <MenuItem value="price_asc">Giá từ thấp lên cao</MenuItem>
-                  <MenuItem value="price_desc">Giá từ cao xuống thấp</MenuItem>
-                </Select>
-              </FormControl>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Sắp xếp theo</InputLabel>
+                  <Select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    label="Sắp xếp theo"
+                  >
+                    <MenuItem value="name">Tên A-Z</MenuItem>
+                    <MenuItem value="price_asc">Giá từ thấp lên cao</MenuItem>
+                    <MenuItem value="price_desc">Giá từ cao xuống thấp</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Hiển thị</InputLabel>
+                  <Select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    label="Hiển thị"
+                  >
+                    <MenuItem value={6}>6 sản phẩm</MenuItem>
+                    <MenuItem value={12}>12 sản phẩm</MenuItem>
+                    <MenuItem value={24}>24 sản phẩm</MenuItem>
+                    <MenuItem value={48}>48 sản phẩm</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
               
               <Typography variant="body2" color="text.secondary">
-                {filteredProducts.length} sản phẩm
+                Hiển thị {Math.min((currentPage - 1) * itemsPerPage + 1, filteredProducts.length)}-{Math.min(currentPage * itemsPerPage, filteredProducts.length)} trong {filteredProducts.length} sản phẩm
               </Typography>
             </Stack>
           </Paper>
@@ -461,13 +499,35 @@ const Shop = () => {
 
           {/* Products Grid */}
           {filteredProducts.length > 0 ? (
-            <Grid container spacing={3}>
-              {filteredProducts.map((product) => (
-                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={product.id}>
-                  <ProductCard product={product} />
-                </Grid>
-              ))}
-            </Grid>
+            <>
+              <Grid container spacing={3}>
+                {paginatedProducts.map((product) => (
+                  <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={product.id}>
+                    <ProductCard product={product} />
+                  </Grid>
+                ))}
+              </Grid>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={(_, page) => setCurrentPage(page)}
+                    color="primary"
+                    size="large"
+                    showFirstButton
+                    showLastButton
+                    sx={{
+                      '& .MuiPagination-ul': {
+                        justifyContent: 'center'
+                      }
+                    }}
+                  />
+                </Box>
+              )}
+            </>
           ) : (
             <Box sx={{ textAlign: 'center', py: 8 }}>
               <Typography variant="h5" color="text.secondary">

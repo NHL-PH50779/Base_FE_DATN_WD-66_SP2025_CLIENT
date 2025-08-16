@@ -1,25 +1,29 @@
 import { useEffect } from 'react';
 import { useCartStore } from '../stores/cart.store';
-
-import { wishlistService } from '../services/wishlist.service';
+import { cartService } from '../services/cart.service';
+import { authService } from '../services/auth/auth.service';
 
 export const useCartSync = () => {
-  const { setCartCount, setWishlistCount } = useCartStore();
+  const { setCartCount } = useCartStore();
 
   useEffect(() => {
-    const syncCounts = async () => {
-      try {
-        // Chỉ sync wishlist từ localStorage (nhanh)
-        const wishlistResponse = await wishlistService.getWishlist();
-        const wishlistItems = wishlistResponse.data || [];
-        setWishlistCount(wishlistItems.length);
+    const syncCartCount = async () => {
+      if (!authService.isAuthenticated()) {
+        setCartCount(0);
+        return;
+      }
 
-        // Cart count sẽ được cập nhật khi user thêm/xóa sản phẩm
+      try {
+        const response = await cartService.getMyCart();
+        const actualCount = response.data?.items?.length || 0;
+        setCartCount(actualCount);
+        console.log('Cart synced:', actualCount);
       } catch (error) {
-        console.error('Error syncing counts:', error);
+        console.error('Error syncing cart:', error);
+        setCartCount(0);
       }
     };
 
-    syncCounts();
-  }, [setCartCount, setWishlistCount]);
+    syncCartCount();
+  }, [setCartCount]);
 };

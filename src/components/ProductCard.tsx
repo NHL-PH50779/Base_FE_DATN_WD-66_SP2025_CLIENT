@@ -349,8 +349,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemoveFromWishlist
             
             try {
               const { cartService } = await import('../services/cart.service');
+              const { useCartStore } = await import('../stores/cart.store');
+              
               const flashPrice = product.isFlashSale ? product.price : undefined;
               await cartService.addToCart(product.id, null, 1, flashPrice);
+              
+              // Sync cart count after adding
+              const cartResponse = await cartService.getMyCart();
+              const actualCount = cartResponse.data?.items?.length || 0;
+              useCartStore.getState().setCartCount(actualCount);
+              
               showSnackbar(product.isFlashSale ? 'Đã thêm flash sale vào giỏ hàng!' : 'Đã thêm vào giỏ hàng!', 'success');
             } catch (error: any) {
               console.error('Error adding to cart:', error);

@@ -40,6 +40,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cartService } from '../services/cart.service';
 import { orderService } from '../services/order.service';
 import { authService } from '../services/auth/auth.service';
+import { useCartStore } from '../stores/cart.store';
 import { useNavigate } from 'react-router-dom';
 
 interface CartItem {
@@ -75,6 +76,7 @@ const Cart = () => {
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [quantityUpdateTimeouts, setQuantityUpdateTimeouts] = useState<Map<number, NodeJS.Timeout>>(new Map());
   const navigate = useNavigate();
+  const { setCartCount } = useCartStore();
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -93,7 +95,13 @@ const Cart = () => {
     setLoading(true);
     try {
       const response = await cartService.getMyCart();
+      console.log('Cart response:', response); // Debug log
       setCart(response.data);
+      
+      // Sync cart count with actual items
+      const actualCount = response.data?.items?.length || 0;
+      setCartCount(actualCount);
+      console.log('Updated cart count to:', actualCount);
     } catch (error) {
       console.error('Error fetching cart:', error);
       showSnackbar('Lỗi khi tải giỏ hàng', 'error');
@@ -110,10 +118,14 @@ const Cart = () => {
 
   const removeItem = async (itemId: number) => {
     // Optimistic update - remove from UI immediately
-    setCart(prevCart => ({
-      ...prevCart,
-      items: prevCart.items.filter(item => item.id !== itemId)
-    }));
+    const updatedCart = {
+      ...cart,
+      items: cart.items.filter(item => item.id !== itemId)
+    };
+    setCart(updatedCart);
+    
+    // Update cart count immediately
+    setCartCount(updatedCart.items.length);
     
     // Remove from selected items
     setSelectedItems(prev => {
@@ -155,6 +167,13 @@ const Cart = () => {
 
   // Debounced quantity update to reduce API calls
   const debouncedUpdateQuantity = (itemId: number, newQuantity: number) => {
+    // Kiểm tra tồn kho trước khi update
+    const item = cart.items.find(i => i.id === itemId);
+    if (item?.product_variant?.stock && newQuantity > item.product_variant.stock) {
+      showSnackbar(`Không thể thêm quá ${item.product_variant.stock} sản phẩm`, 'error');
+      return;
+    }
+    
     // Clear existing timeout for this item
     const existingTimeout = quantityUpdateTimeouts.get(itemId);
     if (existingTimeout) {
@@ -178,7 +197,9 @@ const Cart = () => {
         await cartService.updateCartItem(itemId, newQuantity);
       } catch (error: any) {
         console.error('Error updating quantity:', error);
-        showSnackbar('Lỗi khi cập nhật số lượng', 'error');
+        // Hiện thị message từ backend
+        const errorMessage = error.message || 'Lỗi khi cập nhật số lượng';
+        showSnackbar(errorMessage, 'error');
         await fetchCart(); // Revert on error
       } finally {
         setUpdatingItems(prev => {
@@ -210,7 +231,38 @@ const Cart = () => {
   };
 
   const confirmDelete = async () => {
-    await removeItem(deleteDialog.itemId);
+    if (deleteDialog.itemId === -1) {
+      // Bulk delete selected items
+      const selectedItemIds = Array.from(selectedItems);
+      
+      // Optimistic update - remove from UI immediately
+      const updatedCart = {
+        ...cart,
+        items: cart.items.filter(item => !selectedItems.has(item.id))
+      };
+      setCart(updatedCart);
+      
+      // Update cart count immediately
+      setCartCount(updatedCart.items.length);
+      
+      // Clear selected items
+      setSelectedItems(new Set());
+      
+      try {
+        // Delete all selected items
+        await Promise.all(selectedItemIds.map(itemId => cartService.removeFromCart(itemId)));
+        showSnackbar(`Đã xóa ${selectedItemIds.length} sản phẩm`, 'success');
+      } catch (error) {
+        console.error('Error removing items:', error);
+        showSnackbar('Lỗi khi xóa sản phẩm', 'error');
+        // Revert on error
+        await fetchCart();
+      }
+    } else {
+      // Single item delete
+      await removeItem(deleteDialog.itemId);
+    }
+    
     setDeleteDialog({ open: false, itemId: 0, itemName: '' });
   };
 
@@ -313,12 +365,12 @@ const Cart = () => {
           transition={{ duration: 0.5 }}
         >
           {/* Header */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-              Giỏ hàng của bạn
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Giỏ hàng
             </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {cart.items.length} sản phẩm trong giỏ hàng
+            <Typography variant="body2" color="text.secondary">
+              {cart.items.length} sản phẩm
             </Typography>
           </Box>
 
@@ -357,19 +409,48 @@ const Cart = () => {
                   <CardContent sx={{ p: 0 }}>
                     {/* Select All Header */}
                     <Box sx={{ p: 3, borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Checkbox
-                          checked={cart.items.length > 0 && selectedItems.size === cart.items.length}
-                          indeterminate={selectedItems.size > 0 && selectedItems.size < cart.items.length}
-                          onChange={toggleSelectAll}
-                        />
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                          Chọn tất cả ({cart.items.length} sản phẩm)
-                        </Typography>
-                        {selectedItems.size > 0 && (
-                          <Typography variant="body2" color="primary">
-                            Đã chọn {selectedItems.size} sản phẩm
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Checkbox
+                            checked={cart.items.length > 0 && selectedItems.size === cart.items.length}
+                            indeterminate={selectedItems.size > 0 && selectedItems.size < cart.items.length}
+                            onChange={toggleSelectAll}
+                          />
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            Chọn tất cả ({cart.items.length} sản phẩm)
                           </Typography>
+                          {selectedItems.size > 0 && (
+                            <Typography variant="body2" color="primary">
+                              Đã chọn {selectedItems.size} sản phẩm
+                            </Typography>
+                          )}
+                        </Box>
+                        
+                        {selectedItems.size > 0 && (
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            startIcon={<Delete />}
+                            onClick={() => {
+                              const selectedItemNames = cart.items
+                                .filter(item => selectedItems.has(item.id))
+                                .map(item => item.product.name)
+                                .join(', ');
+                              setDeleteDialog({ 
+                                open: true, 
+                                itemId: -1, // Special ID for bulk delete
+                                itemName: `${selectedItems.size} sản phẩm đã chọn` 
+                              });
+                            }}
+                            sx={{
+                              borderRadius: 2,
+                              px: 2,
+                              py: 0.5
+                            }}
+                          >
+                            Xóa tất cả
+                          </Button>
                         )}
                       </Box>
                     </Box>
@@ -496,7 +577,8 @@ const Cart = () => {
                                       (item.product_variant && typeof item.product_variant.stock === 'number' && item.quantity >= item.product_variant.stock)}
                                     sx={{
                                       border: '1px solid #e2e8f0',
-                                      '&:hover': { backgroundColor: '#f1f5f9' }
+                                      '&:hover': { backgroundColor: '#f1f5f9' },
+                                      '&:disabled': { backgroundColor: '#f5f5f5', color: '#ccc' }
                                     }}
                                   >
                                     <Add fontSize="small" />
@@ -760,18 +842,28 @@ const Cart = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, itemId: 0, itemName: '' })}>
-        <DialogTitle>Xác nhận xóa sản phẩm</DialogTitle>
+        <DialogTitle>
+          {deleteDialog.itemId === -1 ? 'Xác nhận xóa nhiều sản phẩm' : 'Xác nhận xóa sản phẩm'}
+        </DialogTitle>
         <DialogContent>
           <Typography>
-            Bạn có chắc chắn muốn xóa "{deleteDialog.itemName}" khỏi giỏ hàng?
+            {deleteDialog.itemId === -1 
+              ? `Bạn có chắc chắn muốn xóa ${deleteDialog.itemName} khỏi giỏ hàng?`
+              : `Bạn có chắc chắn muốn xóa "${deleteDialog.itemName}" khỏi giỏ hàng?`
+            }
           </Typography>
+          {deleteDialog.itemId === -1 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Hành động này không thể hoàn tác.
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialog({ open: false, itemId: 0, itemName: '' })}>
             Hủy
           </Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
-            Xóa
+            {deleteDialog.itemId === -1 ? 'Xóa tất cả' : 'Xóa'}
           </Button>
         </DialogActions>
       </Dialog>

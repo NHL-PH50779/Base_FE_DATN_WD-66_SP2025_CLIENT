@@ -51,7 +51,18 @@ const Register = () => {
       setOtpSent(true);
       showSnackbar('Đã gửi mã OTP đến email của bạn!', 'success');
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Lỗi khi gửi OTP');
+      console.error('Send OTP error:', error);
+      
+      let errorMessage = 'Lỗi khi gửi OTP';
+      
+      if (error.response?.status === 422) {
+        errorMessage = error.response.data?.message || 'Email này đã được sử dụng';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setError(errorMessage);
+      showSnackbar(errorMessage, 'error');
     } finally {
       setOtpLoading(false);
     }
@@ -83,14 +94,24 @@ const Register = () => {
       setTimeout(() => navigate('/login'), 1500);
     } catch (error: any) {
       console.error('Register error:', error);
+      console.error('Error response:', error.response?.data);
+      
       let errorMessage = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
       
       if (error.response?.status === 422) {
         const errors = error.response.data.errors;
+        console.log('Validation errors:', errors);
+        
         if (errors?.email) {
-          errorMessage = errors.email[0];
-        } else if (errors?.password) {
-          errorMessage = errors.password[0];
+          errorMessage = 'Email này đã được sử dụng. Vui lòng chọn email khác.';
+        } else if (errors) {
+          // Hiện thị lỗi đầu tiên
+          const firstError = Object.values(errors)[0];
+          if (Array.isArray(firstError)) {
+            errorMessage = firstError[0];
+          } else {
+            errorMessage = firstError;
+          }
         } else {
           errorMessage = error.response.data.message || 'Thông tin nhập không hợp lệ';
         }
@@ -136,12 +157,28 @@ const Register = () => {
               <Button
                 variant="outlined"
                 onClick={sendOtp}
-                disabled={otpLoading || otpSent}
+                disabled={otpLoading}
                 sx={{ minWidth: 120 }}
               >
                 {otpLoading ? 'Đang gửi...' : otpSent ? 'Đã gửi' : 'Gửi OTP'}
               </Button>
             </Box>
+            
+            {otpSent && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => {
+                    setOtpSent(false);
+                    setFormData({...formData, otp: ''});
+                    setError('');
+                  }}
+                >
+                  Thay đổi email?
+                </Button>
+              </Box>
+            )}
             <TextField
               fullWidth
               label="Mật khẩu"

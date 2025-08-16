@@ -88,7 +88,10 @@ const MyOrders = () => {
     3: { label: 'Đang vận chuyển', color: 'primary', icon: <LocalShipping /> },
     4: { label: 'Đã giao hàng', color: 'success', icon: <CheckCircle /> },
     5: { label: 'Hoàn thành', color: 'success', icon: <CheckCircle /> },
-    6: { label: 'Đã hủy', color: 'error', icon: <Cancel /> }
+    6: { label: 'Đã hủy', color: 'error', icon: <Cancel /> },
+    7: { label: 'Yêu cầu hoàn hàng', color: 'warning', icon: <Assignment /> },
+    8: { label: 'Đồng ý hoàn hàng', color: 'success', icon: <CheckCircle /> },
+    9: { label: 'Từ chối hoàn hàng', color: 'error', icon: <Cancel /> }
   };
 
   // Payment status mapping
@@ -103,6 +106,10 @@ const MyOrders = () => {
     // Nếu đơn hàng đã hoàn thành, tự động hiển thị "Đã thanh toán"
     if (order.order_status_id === 5) {
       return { label: 'Đã thanh toán', color: 'success' };
+    }
+    // Nếu đơn hàng đã được hoàn hàng (trạng thái 8), hiển thị "Đã hoàn tiền"
+    if (order.order_status_id === 8) {
+      return { label: 'Đã hoàn tiền', color: 'info' };
     }
     // Nếu không, hiển thị theo trạng thái thực tế
     return paymentStatuses[order.payment_status_id as keyof typeof paymentStatuses] || { label: 'Chưa thanh toán', color: 'warning' };

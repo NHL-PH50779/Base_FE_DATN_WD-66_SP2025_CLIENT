@@ -1,7 +1,7 @@
 import instance from "../apis";
 
-// Set timeout cho category service
-instance.defaults.timeout = 8000;
+// Set default timeout
+instance.defaults.timeout = 45000;
 
 const parseResponse = (response: any) => {
   let data;
@@ -21,19 +21,30 @@ const parseResponse = (response: any) => {
 export const categoryService = {
   getAllCategories: async () => {
     try {
-      const response = await instance.get("/categories", { timeout: 5000 });
+      const response = await instance.get("/categories", { 
+        timeout: 45000 // Tăng timeout cho categories
+      });
       const data = parseResponse(response);
       return { data: Array.isArray(data) ? data : [] };
-    } catch (error) {
-      // Silent fail with fallback data
-      return {
-        data: [
-          { id: 1, name: 'Laptop', description: 'Máy tính xách tay' },
-          { id: 2, name: 'Điện thoại', description: 'Smartphone' },
-          { id: 3, name: 'Tablet', description: 'Máy tính bảng' },
-          { id: 4, name: 'Phụ kiện', description: 'Phụ kiện công nghệ' }
-        ]
-      };
+    } catch (error: any) {
+      console.warn('Categories API failed:', error.message);
+      
+      // Kiểm tra nếu là timeout hoặc network error
+      if (error.message.includes('timeout') || error.code === 'ECONNABORTED' || !error.response) {
+        console.log('Using fallback data due to network issues');
+        return {
+          data: [
+            { id: 1, name: 'Gaming Laptop', description: 'Laptop chơi game cao cấp', products_count: 0 },
+            { id: 2, name: 'Ultrabook', description: 'Laptop mỏng nhẹ văn phòng', products_count: 0 },
+            { id: 3, name: 'Workstation', description: 'Laptop đồ họa chuyên nghiệp', products_count: 0 },
+            { id: 4, name: 'Budget Laptop', description: 'Laptop giá rẻ sinh viên', products_count: 0 }
+          ],
+          isOffline: true
+        };
+      }
+      
+      // Lỗi khác thì throw
+      throw error;
     }
   }
 };

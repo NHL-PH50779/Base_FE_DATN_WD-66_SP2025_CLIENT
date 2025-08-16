@@ -24,13 +24,14 @@ interface FastProductCardProps {
       discount_percentage: number;
     };
   };
+  onPurchaseSuccess?: () => void;
 }
 
-const FastProductCard: React.FC<FastProductCardProps> = ({ product }) => {
+const FastProductCard: React.FC<FastProductCardProps> = ({ product, onPurchaseSuccess }) => {
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error';
+    severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'success' });
   
   // Format giá tiền
@@ -198,10 +199,11 @@ const FastProductCard: React.FC<FastProductCardProps> = ({ product }) => {
             <Box
               onClick={async () => {
                 // Kiểm tra còn hàng không
-                if (product.flashSaleData && product.flashSaleData.remaining_quantity <= 0) {
+                const remainingQty = product.flashSaleData?.remaining_quantity || 0;
+                if (product.isFlashSale && remainingQty <= 0) {
                   setSnackbar({
                     open: true,
-                    message: 'Sản phẩm đã hết hàng!',
+                    message: 'Sản phẩm Flash Sale đã hết hàng!',
                     severity: 'error'
                   });
                   return;
@@ -221,45 +223,57 @@ const FastProductCard: React.FC<FastProductCardProps> = ({ product }) => {
                   }
                   
                   const { cartService } = await import('../services/cart.service');
-                  await cartService.addToCart(product.id, null, 1, product.price);
+                  const result = await cartService.addToCart(product.id, null, 1, product.price);
                   
-                  // Cập nhật Flash Sale
-                  const { flashSaleService } = await import('../services/flashSale.service');
-                  await flashSaleService.getCurrentFlashSale(true); // Force refresh
+                  // Kiểm tra nếu là trường hợp đã sở hữu Flash Sale
+                  if (result.isFlashSaleOwned) {
+                    setSnackbar({
+                      open: true,
+                      message: result.message,
+                      severity: 'info'
+                    });
+                    return;
+                  }
+                  
+                  // Gọi callback để cập nhật dữ liệu Flash Sale
+                  if (onPurchaseSuccess) {
+                    onPurchaseSuccess();
+                  }
                   
                   setSnackbar({
                     open: true,
                     message: 'Đã thêm sản phẩm vào giỏ hàng!',
                     severity: 'success'
                   });
-                } catch (error) {
+                } catch (error: any) {
                   console.error('Error adding to cart:', error);
+                  const errorMessage = error.message || 'Có lỗi khi thêm vào giỏ hàng!';
                   setSnackbar({
                     open: true,
-                    message: 'Có lỗi khi thêm vào giỏ hàng!',
+                    message: errorMessage,
                     severity: 'error'
                   });
                 }
               }}
               sx={{
-                backgroundColor: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? '#cccccc' : '#ff4757',
+                backgroundColor: (product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? '#cccccc' : '#ff4757',
                 color: 'white',
                 fontWeight: 600,
                 fontSize: '0.9rem',
                 py: 1,
                 textAlign: 'center',
                 borderRadius: 1,
-                cursor: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'not-allowed' : 'pointer',
-                boxShadow: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'none' : '0 4px 12px rgba(255, 71, 87, 0.3)',
+                cursor: (product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? 'not-allowed' : 'pointer',
+                boxShadow: (product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? 'none' : '0 4px 12px rgba(255, 71, 87, 0.3)',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  backgroundColor: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? '#cccccc' : '#ff3742',
-                  transform: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'none' : 'translateY(-2px)',
-                  boxShadow: product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'none' : '0 6px 16px rgba(255, 71, 87, 0.4)'
+                  backgroundColor: (product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? '#cccccc' : '#ff3742',
+                  transform: (product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? 'none' : 'translateY(-2px)',
+                  boxShadow: (product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? 'none' : '0 6px 16px rgba(255, 71, 87, 0.4)'
                 }
               }}
             >
-              {product.flashSaleData && product.flashSaleData.remaining_quantity <= 0 ? 'ĐÃ HẾT HÀNG' : 'MUA NGAY'}
+              {(product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? 'ĐÃ HẾT HÀNG' : 'MUA NGAY'}
             </Box>
           </Box>
         </CardContent>
