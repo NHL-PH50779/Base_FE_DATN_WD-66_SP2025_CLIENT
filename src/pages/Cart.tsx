@@ -520,9 +520,7 @@ const Cart = () => {
                                       size="small"
                                       sx={{ backgroundColor: '#e3f2fd', mr: 1 }}
                                     />
-                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                      SKU: {item.product_variant.id || 'N/A'}
-                                    </Typography>
+
                                   </Box>
                                 )}
                                 <Typography variant="h6" color="primary" sx={{ fontWeight: 700 }}>

@@ -123,11 +123,23 @@ const Checkout = () => {
 
   const fetchCartData = async () => {
     try {
-      // Check if coming from "Mua ngay" (direct buy)
+      // Check if coming from "Mua ngay" (direct buy) - from state or URL params
       if (location.state?.directBuy && location.state?.orderData) {
         const orderData = location.state.orderData;
         setCartItems(orderData.items || []);
         return;
+      }
+      
+      // Check URL params for flash sale direct buy
+      const urlParams = new URLSearchParams(location.search);
+      if (urlParams.get('directBuy') === 'true' && urlParams.get('orderData')) {
+        try {
+          const orderData = JSON.parse(decodeURIComponent(urlParams.get('orderData') || ''));
+          setCartItems(orderData.items || []);
+          return;
+        } catch (e) {
+          console.error('Error parsing order data from URL:', e);
+        }
       }
       
       // Check if coming from cart with selected items
@@ -188,6 +200,7 @@ const Checkout = () => {
         : calculateSubtotal();
       
       const response = await voucherService.getAvailableVouchers(orderAmount);
+      console.log('Vouchers data:', response.data); // Debug log
       setAvailableVouchers(response.data || []);
     } catch (error) {
       console.error('Error fetching vouchers:', error);
@@ -348,28 +361,20 @@ const Checkout = () => {
 
   return (
     <Box sx={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-      {/* Hero Section */}
-      <Box
-        sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          py: 8,
-          color: 'white',
-          textAlign: 'center'
-        }}
-      >
+      {/* Header */}
+      <Box sx={{ backgroundColor: '#f8fafc', py: 3, borderBottom: '1px solid #e2e8f0' }}>
         <Container>
-          <Typography variant="body1" sx={{ mb: 1, opacity: 0.9 }}>
-            <span style={{ marginRight: 8 }}>Trang chủ</span>
-            <span>Thanh toán</span>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Trang chủ / Thanh toán
           </Typography>
-          <Typography variant="h2" sx={{ fontWeight: 700 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, color: '#2c3e50' }}>
             Thanh toán
           </Typography>
         </Container>
       </Box>
 
       {/* Main Content */}
-      <Container maxWidth="xl" sx={{ py: 6 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', gap: 4, minHeight: '70vh' }}>
           {/* Left Column - Customer Info */}
           <Box sx={{ flex: 1, maxWidth: '50%' }}>
@@ -792,23 +797,23 @@ const Checkout = () => {
                           variant="outlined"
                         />
                         <Chip 
-                          label={voucher.discount_type === 'percentage' 
-                            ? `Giảm ${voucher.discount_value}%` 
-                            : `Giảm ${formatPrice(voucher.discount_value)}`
+                          label={voucher.type === 'percent' 
+                            ? `Giảm ${Number(voucher.value) || 0}%` 
+                            : `Giảm ${formatPrice(Number(voucher.value) || 0)}`
                           } 
                           size="small" 
                           color="success"
                         />
-                        {voucher.min_order_amount > 0 && (
+                        {(Number(voucher.min_order_amount) || 0) > 0 && (
                           <Chip 
-                            label={`Đơn tối thiểu ${formatPrice(voucher.min_order_amount)}`} 
+                            label={`Đơn tối thiểu ${formatPrice(Number(voucher.min_order_amount) || 0)}`} 
                             size="small" 
                             variant="outlined"
                           />
                         )}
-                        {voucher.max_discount_amount > 0 && voucher.discount_type === 'percentage' && (
+                        {(Number(voucher.max_discount_amount) || 0) > 0 && voucher.type === 'percent' && (
                           <Chip 
-                            label={`Giảm tối đa ${formatPrice(voucher.max_discount_amount)}`} 
+                            label={`Giảm tối đa ${formatPrice(Number(voucher.max_discount_amount) || 0)}`} 
                             size="small" 
                             variant="outlined"
                           />

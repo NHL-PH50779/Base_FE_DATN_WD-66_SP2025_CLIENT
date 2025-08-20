@@ -96,22 +96,30 @@ const FlashSalePurchase: React.FC<FlashSalePurchaseProps> = ({
     setError('');
     
     try {
-      // Mua sản phẩm flash sale
-      await flashSaleService.purchaseFlashSale(productId, 1);
+      // Không gọi API purchase nữa, chỉ chuyển thẳng đến checkout với thông tin flash sale
+      const orderData = {
+        items: [{
+          id: flashSaleInfo.id,
+          name: productName,
+          price: flashSaleInfo.sale_price,
+          quantity: 1,
+          image: flashSaleInfo.product?.thumbnail || '',
+          variant: 'Flash Sale'
+        }],
+        total: flashSaleInfo.sale_price + 30000 // Thêm phí ship
+      };
       
-      // Refresh flash sale data ngay lập tức
-      setTimeout(() => {
-        if (onSuccess) {
-          onSuccess();
-        }
-      }, 500);
+      // Refresh flash sale data trước khi chuyển trang
+      if (onSuccess) {
+        onSuccess(); // Gọi callback để refresh data
+      }
       
-      // Close dialog and redirect to cart
+      // Close dialog and redirect to checkout
       onClose();
-      window.location.href = '/cart';
+      window.location.href = `/checkout?directBuy=true&orderData=${encodeURIComponent(JSON.stringify(orderData))}`;
       
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi mua sản phẩm';
+      const errorMessage = 'Có lỗi xảy ra khi xử lý đơn hàng';
       setError(errorMessage);
     } finally {
       setPurchasing(false);

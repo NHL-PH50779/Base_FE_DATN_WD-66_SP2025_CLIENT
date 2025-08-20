@@ -98,7 +98,7 @@ const About = () => {
   ];
 
   return (
-    <Box sx={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <Box sx={{ backgroundColor: '#e8e8e8', minHeight: '100vh' }}>
       {/* Hero Section */}
       <Box
         sx={{
@@ -109,13 +109,13 @@ const About = () => {
         }}
       >
         <Container>
-          <Typography variant="h2" sx={{ fontWeight: 700, mb: 3 }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, mb: 3 }}>
             Về TechShop
           </Typography>
-          <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
+          <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
             Đối tác tin cậy trong hành trình công nghệ của bạn
           </Typography>
-          <Typography variant="body1" sx={{ maxWidth: 800, mx: 'auto', fontSize: '1.1rem' }}>
+          <Typography variant="body1" sx={{ maxWidth: 800, mx: 'auto', fontSize: '0.95rem' }}>
             Chúng tôi tự hào là một trong những nhà cung cấp sản phẩm công nghệ hàng đầu,
             mang đến cho khách hàng những sản phẩm chất lượng cao với dịch vụ tốt nhất.
           </Typography>
@@ -147,7 +147,7 @@ const About = () => {
       <Container sx={{ py: 8 }}>
         <Grid container spacing={6} alignItems="center">
           <Grid size={{ xs: 12, md: 6 }}>
-            <Typography variant="h3" sx={{ fontWeight: 700, mb: 3, color: '#2c3e50' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 3, color: '#2c3e50' }}>
               Câu chuyện của chúng tôi
             </Typography>
             <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.8 }}>
@@ -183,7 +183,7 @@ const About = () => {
       {/* Services Section */}
       <Box sx={{ backgroundColor: 'white', py: 8 }}>
         <Container>
-          <Typography variant="h3" sx={{ textAlign: 'center', fontWeight: 700, mb: 6, color: '#2c3e50' }}>
+          <Typography variant="h4" sx={{ textAlign: 'center', fontWeight: 700, mb: 6, color: '#2c3e50' }}>
             Tại sao chọn chúng tôi?
           </Typography>
           <Grid container spacing={4}>
@@ -208,7 +208,7 @@ const About = () => {
 
       {/* Values Section */}
       <Container sx={{ py: 8 }}>
-        <Typography variant="h3" sx={{ textAlign: 'center', fontWeight: 700, mb: 6, color: '#2c3e50' }}>
+        <Typography variant="h4" sx={{ textAlign: 'center', fontWeight: 700, mb: 6, color: '#2c3e50' }}>
           Giá trị cốt lõi
         </Typography>
         <Grid container spacing={4}>
@@ -237,10 +237,10 @@ const About = () => {
         }}
       >
         <Container>
-          <Typography variant="h3" sx={{ fontWeight: 700, mb: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
             Sẵn sàng bắt đầu?
           </Typography>
-          <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
+          <Typography variant="body1" sx={{ mb: 4, opacity: 0.9 }}>
             Khám phá các sản phẩm công nghệ tuyệt vời của chúng tôi
           </Typography>
           <Button

@@ -74,7 +74,7 @@ const Contact = () => {
   };
 
   return (
-    <Box sx={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <Box sx={{ backgroundColor: '#e8e8e8', minHeight: '100vh' }}>
       {/* Hero Section */}
       <Box
         sx={{
@@ -85,10 +85,10 @@ const Contact = () => {
         }}
       >
         <Container>
-          <Typography variant="h2" sx={{ fontWeight: 700, mb: 3 }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, mb: 3 }}>
             Liên hệ với chúng tôi
           </Typography>
-          <Typography variant="h5" sx={{ opacity: 0.9 }}>
+          <Typography variant="h6" sx={{ opacity: 0.9 }}>
             Chúng tôi luôn sẵn sàng hỗ trợ bạn
           </Typography>
         </Container>
@@ -120,7 +120,7 @@ const Contact = () => {
         <Grid container spacing={6}>
           <Grid size={{ xs: 12, md: 8 }}>
             <Card sx={{ p: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 4, color: '#2c3e50' }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 4, color: '#2c3e50' }}>
                 Gửi tin nhắn cho chúng tôi
               </Typography>
               

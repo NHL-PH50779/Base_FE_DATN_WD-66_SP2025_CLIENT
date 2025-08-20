@@ -51,6 +51,7 @@ import {
   Refresh
 } from '@mui/icons-material';
 import { orderService } from '../services/order.service';
+import { walletService } from '../services/wallet.service';
 
 interface WalletTransaction {
   id: number;
@@ -100,6 +101,10 @@ const WalletNew = () => {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [filters, setFilters] = useState<FilterState>({
     type: '',
     from_date: '',
@@ -121,7 +126,7 @@ const WalletNew = () => {
   const fetchWalletData = async () => {
     try {
       setLoading(true);
-      const response = await orderService.getWallet();
+      const response = await walletService.getWallet();
       setWalletData(response.data);
     } catch (error: any) {
       console.error('Error fetching wallet:', error);
@@ -174,11 +179,40 @@ const WalletNew = () => {
     setDepositAmount('');
   };
 
-  const handleWithdraw = () => {
-    // Logic rút tiền
-    console.log(`Rút ${withdrawAmount} VND - Xử lý trong 1-3 ngày`);
-    setWithdrawModalOpen(false);
-    setWithdrawAmount('');
+  const handleWithdraw = async () => {
+    try {
+      if (!withdrawAmount || !bankName || !accountNumber || !accountName) {
+        setSnackbar({ open: true, message: 'Vui lòng điền đầy đủ thông tin', severity: 'error' });
+        return;
+      }
+      
+      const amount = parseFloat(withdrawAmount);
+      if (amount < 50000) {
+        setSnackbar({ open: true, message: 'Số tiền rút tối thiểu là 50,000 VND', severity: 'error' });
+        return;
+      }
+      
+      await walletService.createWithdrawRequest({
+        amount,
+        bank_name: bankName,
+        account_number: accountNumber,
+        account_name: accountName
+      });
+      
+      setSnackbar({ open: true, message: 'Yêu cầu rút tiền đã được gửi, vui lòng chờ admin duyệt', severity: 'success' });
+      setWithdrawModalOpen(false);
+      setWithdrawAmount('');
+      setBankName('');
+      setAccountNumber('');
+      setAccountName('');
+      fetchWalletData();
+    } catch (error: any) {
+      setSnackbar({ 
+        open: true, 
+        message: error.response?.data?.message || 'Có lỗi xảy ra khi tạo yêu cầu rút tiền', 
+        severity: 'error' 
+      });
+    }
   };
 
   const applyFilters = () => {
@@ -303,7 +337,7 @@ const WalletNew = () => {
                 </Stack>
                 
                 <Typography variant="h3" sx={{ fontWeight: 700, mb: 2 }}>
-                  {walletData?.formatted_balance}
+                  {walletData?.formatted_balance || '0 VND'}
                 </Typography>
                 
                 {walletData?.pending_amount && walletData.pending_amount > 0 && (
@@ -639,14 +673,37 @@ const WalletNew = () => {
             onChange={(e) => setWithdrawAmount(e.target.value)}
             sx={{ mb: 3, mt: 1 }}
           />
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Ngân hàng</InputLabel>
+            <Select
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              label="Ngân hàng"
+            >
+              <MenuItem value="VCB">Vietcombank</MenuItem>
+              <MenuItem value="TCB">Techcombank</MenuItem>
+              <MenuItem value="MB">MB Bank</MenuItem>
+              <MenuItem value="ACB">ACB</MenuItem>
+              <MenuItem value="VTB">Vietinbank</MenuItem>
+              <MenuItem value="BIDV">BIDV</MenuItem>
+              <MenuItem value="CTG">VietinBank</MenuItem>
+              <MenuItem value="EIB">Eximbank</MenuItem>
+              <MenuItem value="TPB">TPBank</MenuItem>
+              <MenuItem value="STB">Sacombank</MenuItem>
+            </Select>
+          </FormControl>
           <TextField
             fullWidth
-            label="Số tài khoản ngân hàng"
+            label="Số tài khoản"
+            value={accountNumber}
+            onChange={(e) => setAccountNumber(e.target.value)}
             sx={{ mb: 2 }}
           />
           <TextField
             fullWidth
-            label="Tên ngân hàng"
+            label="Tên chủ tài khoản"
+            value={accountName}
+            onChange={(e) => setAccountName(e.target.value)}
             sx={{ mb: 2 }}
           />
           <Alert severity="info">
@@ -710,6 +767,17 @@ const WalletNew = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

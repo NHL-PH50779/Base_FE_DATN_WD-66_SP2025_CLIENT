@@ -47,12 +47,13 @@ export const flashSaleService = {
     try {
       // Luôn thêm timestamp để tránh cache
       const timestamp = Date.now();
-      const url = `/flash-sale/current?t=${timestamp}`;
+      const url = `/flash-sale/current?t=${timestamp}&refresh=${forceRefresh ? '1' : '0'}`;
       const response = await instance.get(url, { 
         timeout: 5000,
         headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
       return { data: response.data.data };
