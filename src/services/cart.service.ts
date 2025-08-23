@@ -49,21 +49,43 @@ export const cartService = {
         payload.price = flashSalePrice;
       }
       
-      console.log('Adding to cart with payload:', payload); // Debug
+      console.log('=== ADD TO CART DEBUG ===');
+      console.log('Payload being sent:', payload);
+      console.log('API endpoint:', '/cart');
       
       const response = await instance.post("/cart", payload);
+      console.log('Add to cart success:', response.data);
+      console.log('=== END ADD TO CART DEBUG ===');
+      
       // Không tự động increment - sẽ được sync khi fetch cart
       return parseResponse(response);
     } catch (error: any) {
-      console.error("Error adding to cart:", error);
+      console.error('=== ADD TO CART ERROR ===');
+      console.error('Full error object:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error message:', error.message);
+      console.error('Payload that caused error:', payload);
+      console.error('=== END ADD TO CART ERROR ===');
+      
       const errorMessage = error.response?.data?.message || 'Lỗi khi thêm vào giỏ hàng';
       
-      // Kiểm tra nếu là lỗi đã mua Flash Sale - trả về object đặc biệt thay vì throw error
+      // Kiểm tra các loại lỗi đặc biệt
       if (errorMessage.includes('đã sở hữu sản phẩm Flash Sale')) {
         return {
           success: false,
           isFlashSaleOwned: true,
           message: errorMessage
+        };
+      }
+      
+      // Kiểm tra lỗi hết hàng
+      if (errorMessage.includes('vượt quá') && errorMessage.includes('số lượng sản phẩm trong kho')) {
+        return {
+          success: false,
+          isOutOfStock: true,
+          message: 'Sản phẩm này hiện đã hết hàng!'
         };
       }
       

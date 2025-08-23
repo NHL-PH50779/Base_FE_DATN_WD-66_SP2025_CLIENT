@@ -32,6 +32,7 @@ import { authService } from '../services/auth/auth.service';
 import { voucherService } from '../services/voucher.service';
 import { paymentService } from '../services/payment.service';
 import { vnpayService } from '../services/vnpay.service';
+import { walletService } from '../services/wallet.service';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LocationOn,
@@ -41,7 +42,8 @@ import {
   CreditCard,
   LocalShipping,
   AccountBalance,
-  LocalOffer
+  LocalOffer,
+  AccountBalanceWallet
 } from '@mui/icons-material';
 import { Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
@@ -81,11 +83,14 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [loadingWallet, setLoadingWallet] = useState(false);
 
   // Fetch cart data and user info
   useEffect(() => {
     fetchCartData();
     loadUserInfo();
+    fetchWalletBalance();
   }, []);
 
   // Refresh user info when page becomes visible (after updating profile)
@@ -121,8 +126,51 @@ const Checkout = () => {
     }
   };
 
+  const fetchWalletBalance = async () => {
+    try {
+      setLoadingWallet(true);
+      const response = await walletService.getWallet();
+      console.log('Wallet response:', response);
+      // Lấy balance từ response.data.balance
+      setWalletBalance(response.data?.balance || response.balance || 0);
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+      setWalletBalance(0);
+    } finally {
+      setLoadingWallet(false);
+    }
+  };
+
   const fetchCartData = async () => {
     try {
+      // Check if coming from Flash Sale
+      const urlParams = new URLSearchParams(location.search);
+      if (urlParams.get('flash') === 'true') {
+        const flashSaleData = localStorage.getItem('flashSaleCheckout');
+        if (flashSaleData) {
+          try {
+            const checkoutData = JSON.parse(flashSaleData);
+            console.log('Flash Sale checkout data:', checkoutData);
+            
+            const transformedItems: CartItem[] = checkoutData.items.map((item: any) => ({
+              id: item.product_id,
+              name: item.product_name,
+              price: item.price,
+              quantity: item.quantity,
+              image: item.product_image || '/placeholder-image.jpg',
+              variant: ''
+            }));
+            
+            setCartItems(transformedItems);
+            // Xóa dữ liệu sau khi sử dụng
+            localStorage.removeItem('flashSaleCheckout');
+            return;
+          } catch (e) {
+            console.error('Error parsing flash sale data:', e);
+          }
+        }
+      }
+      
       // Check if coming from "Mua ngay" (direct buy) - from state or URL params
       if (location.state?.directBuy && location.state?.orderData) {
         const orderData = location.state.orderData;
@@ -130,8 +178,7 @@ const Checkout = () => {
         return;
       }
       
-      // Check URL params for flash sale direct buy
-      const urlParams = new URLSearchParams(location.search);
+      // Check URL params for direct buy
       if (urlParams.get('directBuy') === 'true' && urlParams.get('orderData')) {
         try {
           const orderData = JSON.parse(decodeURIComponent(urlParams.get('orderData') || ''));
@@ -321,6 +368,13 @@ const Checkout = () => {
         } else {
           throw new Error('Không thể tạo URL thanh toán VNPay');
         }
+      } else if (paymentMethod === 'wallet') {
+        // 💰 Thanh toán bằng ví
+        showSnackbar(`Đặt hàng và thanh toán thành công ${formatPrice(calculateTotal())} từ ví điện tử!`, 'success');
+        // Refresh wallet balance
+        setTimeout(() => {
+          fetchWalletBalance();
+        }, 1000);
       } else {
         showSnackbar('Đặt hàng thành công! Bạn sẽ thanh toán khi nhận hàng.', 'success');
       }
@@ -346,7 +400,14 @@ const Checkout = () => {
         showSnackbar('Vui lòng đăng nhập để đặt hàng!', 'error');
         navigate('/login');
       } else if (error.response?.status === 400) {
-        showSnackbar('Lỗi: ' + (error.response?.data?.message || 'Số lượng sản phẩm không đủ'), 'error');
+        const errorMessage = error.response?.data?.message || 'Số lượng sản phẩm không đủ';
+        
+        // Nếu là lỗi ví không đủ tiền, refresh wallet balance
+        if (errorMessage.includes('Số dư ví không đủ')) {
+          fetchWalletBalance();
+        }
+        
+        showSnackbar('Lỗi: ' + errorMessage, 'error');
       } else {
         showSnackbar('Có lỗi xảy ra khi đặt hàng: ' + (error.response?.data?.message || error.message), 'error');
       }
@@ -649,6 +710,64 @@ const Checkout = () => {
                         />
                       </Box>
 
+                      {/* Wallet Payment */}
+                      <Box sx={{ 
+                        p: 3, 
+                        border: paymentMethod === 'wallet' ? '2px solid #ff9800' : '1px solid #e0e0e0',
+                        borderRadius: 2, 
+                        backgroundColor: paymentMethod === 'wallet' ? '#fff3e0' : '#fff',
+                        cursor: 'pointer',
+                        opacity: walletBalance < calculateTotal() ? 0.6 : 1
+                      }}>
+                        <FormControlLabel
+                          value="wallet"
+                          control={<Radio disabled={walletBalance < calculateTotal()} />}
+                          label={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                              <AccountBalanceWallet sx={{ color: '#ff9800', fontSize: 40 }} />
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600, color: '#f57c00' }}>
+                                  Thanh toán bằng ví điện tử
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Thanh toán nhanh chóng từ số dư ví của bạn
+                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                                  <Typography variant="body2" sx={{ 
+                                    color: walletBalance >= calculateTotal() ? '#4caf50' : '#f44336', 
+                                    fontWeight: 600 
+                                  }}>
+                                    Số dư: {formatPrice(walletBalance)}
+                                  </Typography>
+                                  {walletBalance < calculateTotal() && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography variant="body2" sx={{ color: '#f44336', fontWeight: 500 }}>
+                                        (Không đủ số dư)
+                                      </Typography>
+                                      <Button
+                                        size="small"
+                                        variant="text"
+                                        sx={{ 
+                                          minWidth: 'auto', 
+                                          p: 0.5, 
+                                          fontSize: '0.75rem',
+                                          color: '#2196F3',
+                                          textTransform: 'none'
+                                        }}
+                                        onClick={() => navigate('/wallet')}
+                                      >
+                                        Nạp tiền
+                                      </Button>
+                                    </Box>
+                                  )}
+                                </Box>
+                              </Box>
+                            </Box>
+                          }
+                          sx={{ margin: 0, width: '100%' }}
+                        />
+                      </Box>
+
                       {/* VNPay Payment */}
                       <Box sx={{ 
                         p: 3, 
@@ -704,19 +823,35 @@ const Checkout = () => {
                     size="large"
                     onClick={handleSubmitOrder}
                     disabled={!acceptTerms || isSubmitting}
-                    startIcon={paymentMethod === 'cod' ? <LocalShipping /> : <CreditCard />}
+                    startIcon={
+                      paymentMethod === 'cod' ? <LocalShipping /> : 
+                      paymentMethod === 'wallet' ? <AccountBalanceWallet /> : 
+                      <CreditCard />
+                    }
                     sx={{
                       py: 2,
                       fontSize: '1.1rem',
                       fontWeight: 600,
-                      backgroundColor: paymentMethod === 'cod' ? '#4CAF50' : '#1976d2',
+                      backgroundColor: 
+                        paymentMethod === 'cod' ? '#4CAF50' : 
+                        paymentMethod === 'wallet' ? '#ff9800' : 
+                        '#1976d2',
                       borderRadius: 2,
                       textTransform: 'none',
-                      boxShadow: paymentMethod === 'cod' ? '0 4px 15px rgba(76, 175, 80, 0.3)' : '0 4px 15px rgba(25, 118, 210, 0.3)',
+                      boxShadow: 
+                        paymentMethod === 'cod' ? '0 4px 15px rgba(76, 175, 80, 0.3)' : 
+                        paymentMethod === 'wallet' ? '0 4px 15px rgba(255, 152, 0, 0.3)' : 
+                        '0 4px 15px rgba(25, 118, 210, 0.3)',
                       '&:hover': {
-                        backgroundColor: paymentMethod === 'cod' ? '#45a049' : '#1565c0',
+                        backgroundColor: 
+                          paymentMethod === 'cod' ? '#45a049' : 
+                          paymentMethod === 'wallet' ? '#f57c00' : 
+                          '#1565c0',
                         transform: 'translateY(-2px)',
-                        boxShadow: paymentMethod === 'cod' ? '0 6px 20px rgba(76, 175, 80, 0.4)' : '0 6px 20px rgba(25, 118, 210, 0.4)'
+                        boxShadow: 
+                          paymentMethod === 'cod' ? '0 6px 20px rgba(76, 175, 80, 0.4)' : 
+                          paymentMethod === 'wallet' ? '0 6px 20px rgba(255, 152, 0, 0.4)' : 
+                          '0 6px 20px rgba(25, 118, 210, 0.4)'
                       },
                       '&:disabled': {
                         backgroundColor: '#ccc'
@@ -724,7 +859,9 @@ const Checkout = () => {
                     }}
                   >
                     {isSubmitting ? 'Đang xử lý...' : 
-                      paymentMethod === 'cod' ? 'Đặt hàng - Thanh toán khi nhận' : 'Đặt hàng - Thanh toán VNPay'
+                      paymentMethod === 'cod' ? 'Đặt hàng - Thanh toán khi nhận' : 
+                      paymentMethod === 'wallet' ? `Đặt hàng - Thanh toán ví (${formatPrice(calculateTotal())})` : 
+                      'Đặt hàng - Thanh toán VNPay'
                     }
                   </Button>
                 </CardContent>

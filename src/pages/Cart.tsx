@@ -95,7 +95,28 @@ const Cart = () => {
     setLoading(true);
     try {
       const response = await cartService.getMyCart();
-      console.log('Cart response:', response); // Debug log
+      console.log('=== CART DEBUG ===');
+      console.log('Full cart response:', response);
+      console.log('Cart data:', response.data);
+      console.log('Cart items:', response.data?.items);
+      console.log('Items count:', response.data?.items?.length);
+      
+      // Kiểm tra cấu trúc dữ liệu
+      if (response.data?.items) {
+        response.data.items.forEach((item: any, index: number) => {
+          console.log(`Item ${index + 1}:`, {
+            id: item.id,
+            product_id: item.product_id,
+            product_variant_id: item.product_variant_id,
+            quantity: item.quantity,
+            price: item.price,
+            product_name: item.product?.name,
+            variant_name: item.product_variant?.name
+          });
+        });
+      }
+      console.log('=== END CART DEBUG ===');
+      
       setCart(response.data);
       
       // Sync cart count with actual items

@@ -48,15 +48,17 @@ const Shop = () => {
 
   const [selectedRam, setSelectedRam] = useState<string[]>([]);
   const [selectedSsd, setSelectedSsd] = useState<string[]>([]);
+  const [selectedCpu, setSelectedCpu] = useState<string[]>([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   
-  // Available filter options
-  const ramOptions = ['4GB', '8GB', '16GB', '32GB', '64GB'];
-  const ssdOptions = ['128GB', '256GB', '512GB', '1TB', '2TB'];
+  // Các tùy chọn lọc theo dữ liệu thuộc tính có sẵn
+  const ramOptions = ['8GB', '16GB', '32GB', '64GB'];
+  const ssdOptions = ['128GB', '256GB', '512GB', '1TB'];
+  const cpuOptions = ['Intel', 'AMD'];
 
   useEffect(() => {
     fetchData();
@@ -67,7 +69,21 @@ const Shop = () => {
     try {
       // Load data sequentially to reduce initial load time
       const productsRes = await productService.getAllProducts();
-      setProducts(productsRes.data || []);
+      const productsData = productsRes.data || [];
+      setProducts(productsData);
+      
+      // Debug: Kiểm tra tên sản phẩm
+      console.log('Products data:', productsData);
+      if (productsData.length > 0) {
+        console.log('Sample product names:');
+        productsData.slice(0, 5).forEach((product, index) => {
+          console.log(`${index + 1}. ${product.name}`);
+          console.log(`   Description: ${product.description || 'N/A'}`);
+          if (product.variants && product.variants.length > 0) {
+            console.log(`   Variants: ${product.variants.map(v => v.Name || 'N/A').join(', ')}`);
+          }
+        });
+      }
       
       // Load categories and brands in background
       Promise.all([
@@ -114,45 +130,71 @@ const Shop = () => {
 
 
 
-    // RAM filter
+    // RAM filter - chỉ dùng text search
     if (selectedRam.length > 0) {
+      console.log('Filtering by RAM:', selectedRam);
       filtered = filtered.filter(product => {
-        const productName = product.name.toLowerCase();
-        const productDesc = (product.description || '').toLowerCase();
-        const variantInfo = product.variants?.map(v => v.Name?.toLowerCase() || '').join(' ') || '';
-        const searchText = `${productName} ${productDesc} ${variantInfo}`;
+        const productText = `${product.name} ${product.description || ''}`.toLowerCase();
+        const variantText = product.variants?.map(v => v.Name || '').join(' ').toLowerCase() || '';
+        const searchText = `${productText} ${variantText}`;
         
-        return selectedRam.some(ram => {
-          const ramValue = ram.replace(/GB/i, '').toLowerCase();
-          return searchText.includes(ram.toLowerCase()) || 
-                 searchText.includes(ramValue) ||
-                 searchText.includes(`${ramValue}gb`) ||
-                 searchText.includes(`${ramValue} gb`) ||
-                 searchText.includes(`ram ${ramValue}`) ||
-                 searchText.includes(`${ramValue}g`);
+        const found = selectedRam.some(ram => {
+          const ramNum = ram.replace('GB', '');
+          const match = searchText.includes(ram.toLowerCase()) || 
+                       searchText.includes(`${ramNum}gb`) ||
+                       searchText.includes(`${ramNum} gb`) ||
+                       searchText.includes(`ram ${ramNum}`) ||
+                       searchText.includes(`${ramNum}g`) ||
+                       searchText.match(new RegExp(`\\b${ramNum}\\s*gb?\\b`, 'i'));
+          if (match) console.log('RAM match:', ram, 'in product:', product.name, 'searchText:', searchText);
+          return match;
         });
+        return found;
       });
+      console.log('Products after RAM filter:', filtered.length);
     }
 
-    // SSD filter
+    // SSD filter - chỉ dùng text search
     if (selectedSsd.length > 0) {
+      console.log('Filtering by SSD:', selectedSsd);
       filtered = filtered.filter(product => {
-        const productName = product.name.toLowerCase();
-        const productDesc = (product.description || '').toLowerCase();
-        const variantInfo = product.variants?.map(v => v.Name?.toLowerCase() || '').join(' ') || '';
-        const searchText = `${productName} ${productDesc} ${variantInfo}`;
+        const productText = `${product.name} ${product.description || ''}`.toLowerCase();
+        const variantText = product.variants?.map(v => v.Name || '').join(' ').toLowerCase() || '';
+        const searchText = `${productText} ${variantText}`;
         
-        return selectedSsd.some(ssd => {
-          const ssdValue = ssd.replace(/GB|TB/i, '').toLowerCase();
-          return searchText.includes(ssd.toLowerCase()) || 
-                 searchText.includes(ssdValue) ||
-                 searchText.includes(`${ssdValue}gb`) ||
-                 searchText.includes(`${ssdValue}tb`) ||
-                 searchText.includes(`ssd ${ssdValue}`) ||
-                 searchText.includes(`${ssdValue}g`) ||
-                 searchText.includes(`${ssdValue}t`);
+        const found = selectedSsd.some(ssd => {
+          const ssdNum = ssd.replace(/GB|TB/i, '');
+          const unit = ssd.includes('TB') ? 'tb' : 'gb';
+          const match = searchText.includes(ssd.toLowerCase()) || 
+                       searchText.includes(`${ssdNum}${unit}`) ||
+                       searchText.includes(`${ssdNum} ${unit}`) ||
+                       searchText.includes(`ssd ${ssdNum}`) ||
+                       searchText.match(new RegExp(`\\b${ssdNum}\\s*${unit}\\b`, 'i')) ||
+                       (unit === 'tb' && searchText.includes(`${ssdNum}t`));
+          if (match) console.log('SSD match:', ssd, 'in product:', product.name, 'searchText:', searchText);
+          return match;
         });
+        return found;
       });
+      console.log('Products after SSD filter:', filtered.length);
+    }
+
+    // CPU filter - chỉ dùng text search
+    if (selectedCpu.length > 0) {
+      console.log('Filtering by CPU:', selectedCpu);
+      filtered = filtered.filter(product => {
+        const productText = `${product.name} ${product.description || ''}`;
+        const variantText = product.variants?.map(v => v.Name || '').join(' ') || '';
+        const searchText = `${productText} ${variantText}`;
+        
+        const found = selectedCpu.some(cpu => {
+          const match = searchText.toLowerCase().includes(cpu.toLowerCase());
+          if (match) console.log('CPU match:', cpu, 'in product:', product.name, 'searchText:', searchText);
+          return match;
+        });
+        return found;
+      });
+      console.log('Products after CPU filter:', filtered.length);
     }
 
     // Sort
@@ -169,7 +211,7 @@ const Shop = () => {
     });
 
     return filtered;
-  }, [products, searchTerm, selectedCategory, selectedBrand, sortBy, selectedRam, selectedSsd]);
+  }, [products, searchTerm, selectedCategory, selectedBrand, sortBy, selectedRam, selectedSsd, selectedCpu]);
 
   // Paginated products
   const paginatedProducts = useMemo(() => {
@@ -183,7 +225,7 @@ const Shop = () => {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedBrand, selectedRam, selectedSsd]);
+  }, [searchTerm, selectedCategory, selectedBrand, selectedRam, selectedSsd, selectedCpu]);
 
   const clearFilters = useCallback(() => {
     setSearchTerm('');
@@ -192,6 +234,7 @@ const Shop = () => {
     setSortBy('name');
     setSelectedRam([]);
     setSelectedSsd([]);
+    setSelectedCpu([]);
     setCurrentPage(1); // Reset to first page
     showSnackbar('Đã xóa tất cả bộ lọc', 'success');
   }, []);
@@ -209,6 +252,14 @@ const Shop = () => {
       prev.includes(ssd) 
         ? prev.filter(s => s !== ssd)
         : [...prev, ssd]
+    );
+  }, []);
+
+  const handleCpuChange = useCallback((cpu: string) => {
+    setSelectedCpu(prev => 
+      prev.includes(cpu) 
+        ? prev.filter(c => c !== cpu)
+        : [...prev, cpu]
     );
   }, []);
 
@@ -249,10 +300,10 @@ const Shop = () => {
       {/* Header */}
       <Container maxWidth="xl" sx={{ pt: 4, pb: 2 }}>
         <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
             Cửa hàng
           </Typography>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="body1" color="text.secondary">
             Tìm kiếm và khám phá sản phẩm yêu thích
           </Typography>
         </Box>
@@ -340,53 +391,83 @@ const Shop = () => {
             </AccordionDetails>
           </Accordion>
 
-          {/* RAM Filter */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="subtitle1" fontWeight={600}>RAM</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <FormGroup>
-                {ramOptions.map(ram => (
-                  <FormControlLabel
-                    key={ram}
-                    control={
-                      <Checkbox
-                        checked={selectedRam.includes(ram)}
-                        onChange={() => handleRamChange(ram)}
-                        size="small"
+          {/* Tạm thời ẩn bộ lọc RAM/SSD/CPU vì dữ liệu không phù hợp */}
+          {false && (
+            <>
+              {/* RAM Filter */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography variant="subtitle1" fontWeight={600}>RAM</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <FormGroup>
+                    {ramOptions.map(ram => (
+                      <FormControlLabel
+                        key={ram}
+                        control={
+                          <Checkbox
+                            checked={selectedRam.includes(ram)}
+                            onChange={() => handleRamChange(ram)}
+                            size="small"
+                          />
+                        }
+                        label={ram}
                       />
-                    }
-                    label={ram}
-                  />
-                ))}
-              </FormGroup>
-            </AccordionDetails>
-          </Accordion>
+                    ))}
+                  </FormGroup>
+                </AccordionDetails>
+              </Accordion>
 
-          {/* SSD Filter */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="subtitle1" fontWeight={600}>Ổ cứng SSD</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <FormGroup>
-                {ssdOptions.map(ssd => (
-                  <FormControlLabel
-                    key={ssd}
-                    control={
-                      <Checkbox
-                        checked={selectedSsd.includes(ssd)}
-                        onChange={() => handleSsdChange(ssd)}
-                        size="small"
+              {/* SSD Filter */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography variant="subtitle1" fontWeight={600}>Ổ cứng SSD</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <FormGroup>
+                    {ssdOptions.map(ssd => (
+                      <FormControlLabel
+                        key={ssd}
+                        control={
+                          <Checkbox
+                            checked={selectedSsd.includes(ssd)}
+                            onChange={() => handleSsdChange(ssd)}
+                            size="small"
+                          />
+                        }
+                        label={ssd}
                       />
-                    }
-                    label={ssd}
-                  />
-                ))}
-              </FormGroup>
-            </AccordionDetails>
-          </Accordion>
+                    ))}
+                  </FormGroup>
+                </AccordionDetails>
+              </Accordion>
+
+              {/* CPU Filter */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography variant="subtitle1" fontWeight={600}>Bộ xử lý (CPU)</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <FormGroup>
+                    {cpuOptions.slice(0, 10).map(cpu => (
+                      <FormControlLabel
+                        key={cpu}
+                        control={
+                          <Checkbox
+                            checked={selectedCpu.includes(cpu)}
+                            onChange={() => handleCpuChange(cpu)}
+                            size="small"
+                          />
+                        }
+                        label={cpu.length > 30 ? `${cpu.substring(0, 30)}...` : cpu}
+                        title={cpu}
+                      />
+                    ))}
+                  </FormGroup>
+                </AccordionDetails>
+              </Accordion>
+            </>
+          )}
 
           {/* Clear Filters */}
           <Button
@@ -443,7 +524,7 @@ const Shop = () => {
           </Paper>
 
           {/* Active Filters */}
-          {(searchTerm || selectedCategory || selectedBrand || selectedRam.length > 0 || selectedSsd.length > 0) && (
+          {(searchTerm || selectedCategory || selectedBrand) && (
             <Box sx={{ mb: 2 }}>
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 {searchTerm && (
@@ -483,16 +564,7 @@ const Shop = () => {
                     variant="outlined"
                   />
                 ))}
-                {selectedSsd.map(ssd => (
-                  <Chip
-                    key={ssd}
-                    label={`SSD ${ssd}`}
-                    onDelete={() => handleSsdChange(ssd)}
-                    size="small"
-                    color="warning"
-                    variant="outlined"
-                  />
-                ))}
+
               </Stack>
             </Box>
           )}

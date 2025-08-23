@@ -136,9 +136,16 @@ const ProductDetail = () => {
         displayPrice
       );
       
-      // Kiểm tra nếu là Flash Sale đã sở hữu
+      // Kiểm tra các trường hợp đặc biệt
       if (result?.isFlashSaleOwned) {
         showSnackbar(result.message, 'info');
+        return;
+      }
+      
+      if (result?.isOutOfStock) {
+        showSnackbar(result.message, 'error');
+        // Refresh product data to update stock
+        fetchProduct(product.id);
         return;
       }
       
@@ -194,10 +201,37 @@ const ProductDetail = () => {
   const originalPrice = displayPrice * 1.3;
   const discount = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
   
-  // Tính tổng stock của tất cả variants
-  const totalStock = product.variants?.reduce((total, variant) => total + (variant.stock || 0), 0) || product.stock || 0;
-  const currentStock = currentVariant?.stock || product.stock || 0;
-  const isOutOfStock = currentStock <= 0;
+  // Helper function để tính stock chính xác
+  const getStockInfo = () => {
+    if (!product) return { currentStock: 0, totalStock: 0, isOutOfStock: true };
+    
+    // Nếu có variants
+    if (product.variants && product.variants.length > 0) {
+      const currentVariant = product.variants[selectedVariant];
+      const currentStock = currentVariant?.stock || 0;
+      const totalStock = product.variants.reduce((total, variant) => {
+        return total + (variant.stock || 0);
+      }, 0);
+      
+      return {
+        currentStock,
+        totalStock,
+        isOutOfStock: currentStock <= 0
+      };
+    }
+    
+    // Nếu không có variants, dùng stock của product
+    const stock = product.stock || 0;
+    return {
+      currentStock: stock,
+      totalStock: stock,
+      isOutOfStock: stock <= 0
+    };
+  };
+  
+  const { currentStock, totalStock, isOutOfStock } = getStockInfo();
+  
+
 
   return (
     <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
@@ -482,13 +516,22 @@ const ProductDetail = () => {
                         {isOutOfStock ? (
                           <span style={{ color: '#f44336', fontWeight: 'bold' }}>Hết hàng</span>
                         ) : (
-                          `${currentStock} sản phẩm có sẵn`
+                          <span>
+                            <strong>{currentStock}</strong> sản phẩm có sẵn
+                            {product.variants && product.variants.length > 1 && (
+                              <span style={{ color: '#666', fontSize: '0.85em' }}>
+                                {' '}(phiên bản hiện tại)
+                              </span>
+                            )}
+                          </span>
                         )}
                         {quantity >= currentStock && currentStock > 0 && " (Đã chọn tối đa)"}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Tổng kho: {totalStock} sản phẩm
-                      </Typography>
+                      {product.variants && product.variants.length > 1 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                          Tổng kho tất cả phiên bản: <strong>{totalStock}</strong> sản phẩm
+                        </Typography>
+                      )}
                     </Box>
                   </Stack>
                 </Box>

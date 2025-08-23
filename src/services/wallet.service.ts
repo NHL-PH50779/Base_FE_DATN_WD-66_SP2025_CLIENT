@@ -4,7 +4,12 @@ export const walletService = {
   // Lấy thông tin ví
   getWallet: async () => {
     try {
-      const response = await instance.get('/wallet');
+      const token = localStorage.getItem('token');
+      const response = await instance.get('/wallet', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching wallet:', error);

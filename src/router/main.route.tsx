@@ -20,6 +20,7 @@ import PasswordReset from '../pages/PasswordReset';
 import VoucherManagement from '../pages/admin/VoucherManagement';
 import Wishlist from '../pages/Wishlist';
 import FlashSalePage from '../pages/FlashSalePage';
+import Wallet from '../pages/Wallet';
 
 export const router = createBrowserRouter([
   {
@@ -93,6 +94,10 @@ export const router = createBrowserRouter([
       {
         path: '/flash-sale',
         element: <FlashSalePage />
+      },
+      {
+        path: '/wallet',
+        element: <Wallet />
       }
     ]
   },

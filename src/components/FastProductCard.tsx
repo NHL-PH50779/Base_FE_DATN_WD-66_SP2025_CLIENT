@@ -222,32 +222,53 @@ const FastProductCard: React.FC<FastProductCardProps> = ({ product, onPurchaseSu
                     return;
                   }
                   
-                  const { cartService } = await import('../services/cart.service');
-                  const result = await cartService.addToCart(product.id, null, 1, product.price);
-                  
-                  // Kiểm tra nếu là trường hợp đã sở hữu Flash Sale
-                  if (result.isFlashSaleOwned) {
+                  if (product.isFlashSale) {
+                    // Flash Sale: Chuyển thẳng sang checkout
+                    const checkoutData = {
+                      items: [{
+                        product_id: product.id,
+                        variant_id: null,
+                        quantity: 1,
+                        price: product.price,
+                        product_name: product.name,
+                        product_image: product.thumbnail,
+                        isFlashSale: true
+                      }],
+                      total: product.price || 0
+                    };
+                    
+                    // Lưu dữ liệu checkout vào localStorage
+                    localStorage.setItem('flashSaleCheckout', JSON.stringify(checkoutData));
+                    
+                    // Chuyển sang trang checkout
+                    window.location.href = '/checkout?flash=true';
+                  } else {
+                    // Sản phẩm thường: Thêm vào giỏ hàng
+                    const { cartService } = await import('../services/cart.service');
+                    const result = await cartService.addToCart(product.id, null, 1, product.price);
+                    
+                    if (result.isFlashSaleOwned) {
+                      setSnackbar({
+                        open: true,
+                        message: result.message,
+                        severity: 'info'
+                      });
+                      return;
+                    }
+                    
+                    if (onPurchaseSuccess) {
+                      onPurchaseSuccess();
+                    }
+                    
                     setSnackbar({
                       open: true,
-                      message: result.message,
-                      severity: 'info'
+                      message: 'Đã thêm sản phẩm vào giỏ hàng!',
+                      severity: 'success'
                     });
-                    return;
                   }
-                  
-                  // Gọi callback để cập nhật dữ liệu Flash Sale
-                  if (onPurchaseSuccess) {
-                    onPurchaseSuccess();
-                  }
-                  
-                  setSnackbar({
-                    open: true,
-                    message: 'Đã thêm sản phẩm vào giỏ hàng!',
-                    severity: 'success'
-                  });
                 } catch (error: any) {
-                  console.error('Error adding to cart:', error);
-                  const errorMessage = error.message || 'Có lỗi khi thêm vào giỏ hàng!';
+                  console.error('Error processing purchase:', error);
+                  const errorMessage = error.message || 'Có lỗi khi xử lý mua hàng!';
                   setSnackbar({
                     open: true,
                     message: errorMessage,
@@ -273,7 +294,8 @@ const FastProductCard: React.FC<FastProductCardProps> = ({ product, onPurchaseSu
                 }
               }}
             >
-              {(product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? 'ĐÃ HẾT HÀNG' : 'MUA NGAY'}
+              {(product.isFlashSale && product.flashSaleData?.remaining_quantity <= 0) ? 'ĐÃ HẾT HÀNG' : 
+               product.isFlashSale ? 'MUA NGAY' : 'THÊM VÀO GIỎ'}
             </Box>
           </Box>
         </CardContent>

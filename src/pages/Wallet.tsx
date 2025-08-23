@@ -141,7 +141,8 @@ const Wallet = () => {
       setLoading(true);
       const response = await orderService.getWallet();
       console.log('Wallet response:', response);
-      setWalletData(response.data);
+      // Lấy data từ response.data nếu có
+      setWalletData(response.data || response);
     } catch (error: any) {
       console.error('Error fetching wallet:', error);
       setError(error.response?.data?.message || 'Có lỗi xảy ra khi tải thông tin ví');
@@ -223,6 +224,33 @@ const Wallet = () => {
     }
   };
 
+  const handleDeposit = async () => {
+    if (!depositAmount || Number(depositAmount) < 10000) {
+      alert('Số tiền nạp tối thiểu là 10.000 VNĐ');
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/wallet/deposit', {
+        amount: Number(depositAmount)
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.data.success && response.data.payment_url) {
+        // Redirect to VNPay
+        window.location.href = response.data.payment_url;
+      } else {
+        alert('Không thể tạo liên kết thanh toán');
+      }
+    } catch (error: any) {
+      console.error('Deposit error:', error);
+      alert('Có lỗi xảy ra: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   if (loading) {
     return (
       <Container sx={{ py: 8, textAlign: 'center' }}>
@@ -278,6 +306,24 @@ const Wallet = () => {
             <Typography variant="h3" sx={{ fontWeight: 700 }}>
               {formatPrice(walletData?.balance || 0)}
             </Typography>
+            
+            {/* Quick Actions */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3 }}>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setDepositModalOpen(true)}
+                sx={{
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.3)'
+                  }
+                }}
+              >
+                Nạp tiền
+              </Button>
+            </Box>
           </CardContent>
         </Card>
 
@@ -386,6 +432,74 @@ const Wallet = () => {
           </CardContent>
         </Card>
       </Container>
+
+      {/* Deposit Modal */}
+      <Dialog open={depositModalOpen} onClose={() => setDepositModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <Add />
+          Nạp tiền vào ví
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Chọn số tiền bạn muốn nạp vào ví điện tử
+          </Typography>
+          
+          <TextField
+            fullWidth
+            label="Số tiền nạp"
+            type="number"
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+            placeholder="Nhập số tiền"
+            InputProps={{
+              endAdornment: <Typography variant="body2" color="text.secondary">VNĐ</Typography>
+            }}
+            sx={{ mb: 3 }}
+          />
+          
+          {/* Quick Amount Buttons */}
+          <Typography variant="body2" sx={{ mb: 2, fontWeight: 500 }}>
+            Số tiền gợi ý:
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+            {[50000, 100000, 200000, 500000, 1000000, 2000000].map((amount) => (
+              <Button
+                key={amount}
+                variant="outlined"
+                size="small"
+                onClick={() => setDepositAmount(amount.toString())}
+                sx={{ minWidth: 'auto' }}
+              >
+                {formatPrice(amount)}
+              </Button>
+            ))}
+          </Box>
+          
+          {depositAmount && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Bạn sẽ nạp <strong>{formatPrice(Number(depositAmount))}</strong> vào ví qua VNPay
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={() => setDepositModalOpen(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            onClick={handleDeposit}
+            disabled={!depositAmount || Number(depositAmount) < 10000}
+            startIcon={<Payment />}
+            sx={{ backgroundColor: '#4CAF50' }}
+          >
+            Nạp qua VNPay
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
