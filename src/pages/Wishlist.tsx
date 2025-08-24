@@ -150,7 +150,7 @@ const Wishlist = () => {
         ) : (
           <Grid container spacing={3}>
             {wishlistProducts.map((product) => (
-              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={product.id}>
+              <Grid item xs={12} sm={6} md={3} key={product.id}>
                 <ProductCard 
                   product={product} 
                   onRemoveFromWishlist={handleRemoveFromWishlist}
