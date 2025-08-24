@@ -32,9 +32,11 @@ import {
 } from '@mui/icons-material';
 import { orderService } from '../services/order.service';
 
+type TransactionType = 'refund' | 'payment' | 'deposit';
+
 interface WalletTransaction {
   id: number;
-  type: 'credit' | 'debit';
+  type: TransactionType;
   amount: number;
   formatted_amount: string;
   description: string;
@@ -151,7 +153,7 @@ const Wallet = () => {
     });
   };
 
-  const getTransactionIcon = (type: string) => {
+  const getTransactionIcon = (type: TransactionType) => {
     switch (type) {
       case 'refund':
         return <TrendingUp sx={{ color: '#4CAF50' }} />;
@@ -164,7 +166,7 @@ const Wallet = () => {
     }
   };
 
-  const getTransactionColor = (type: string) => {
+  const getTransactionColor = (type: TransactionType) => {
     switch (type) {
       case 'refund':
         return 'success';
@@ -177,7 +179,7 @@ const Wallet = () => {
     }
   };
 
-  const getTransactionLabel = (type: string) => {
+  const getTransactionLabel = (type: TransactionType) => {
     switch (type) {
       case 'refund':
         return 'Hoàn tiền';
