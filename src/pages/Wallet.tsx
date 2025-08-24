@@ -16,37 +16,19 @@ import {
   CircularProgress,
   Alert,
   Button,
-  Grid,
-  Avatar,
-  Divider,
   TextField,
   MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Tooltip,
-  Badge,
-  Stack,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  Pagination
 } from '@mui/material';
 import {
   AccountBalance,
   TrendingUp,
   TrendingDown,
   Refresh,
-  Add,
-  Remove,
-  FilterList,
-  Visibility,
-  Payment,
-  AccountBalanceWallet,
-  History,
-  Notifications,
-  Close
+  FilterList
 } from '@mui/icons-material';
 import { orderService } from '../services/order.service';
 
@@ -208,6 +190,15 @@ const Wallet = () => {
     }
   };
 
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | any) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
+    setCurrentPage(page);
+  };
+
   if (loading) {
     return (
       <Container sx={{ py: 8, textAlign: 'center' }}>
@@ -269,69 +260,143 @@ const Wallet = () => {
         {/* Transactions */}
         <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
           <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#2c3e50' }}>
-              Lịch sử giao dịch
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                Lịch sử giao dịch
+              </Typography>
+              <Button variant="outlined" startIcon={<FilterList />} onClick={() => fetchTransactions()}>
+                Áp dụng lọc
+              </Button>
+            </Box>
 
-            {transactions.length === 0 ? (
+            {/* Filter UI */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+              <TextField
+                label="Từ ngày"
+                type="date"
+                name="from_date"
+                value={filters.from_date}
+                onChange={handleFilterChange}
+                InputLabelProps={{ shrink: true }}
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="Đến ngày"
+                type="date"
+                name="to_date"
+                value={filters.to_date}
+                onChange={handleFilterChange}
+                InputLabelProps={{ shrink: true }}
+                sx={{ flex: 1 }}
+              />
+              <FormControl sx={{ flex: 1 }}>
+                <InputLabel>Loại giao dịch</InputLabel>
+                <Select
+                  name="type"
+                  value={filters.type}
+                  onChange={handleFilterChange}
+                  label="Loại giao dịch"
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="refund">Hoàn tiền</MenuItem>
+                  <MenuItem value="payment">Thanh toán</MenuItem>
+                  <MenuItem value="deposit">Nạp tiền</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl sx={{ flex: 1 }}>
+                <InputLabel>Trạng thái</InputLabel>
+                <Select
+                  name="status"
+                  value={filters.status}
+                  onChange={handleFilterChange}
+                  label="Trạng thái"
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="success">Success</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="failed">Failed</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
+            {transactionLoading ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <CircularProgress />
+                <Typography sx={{ mt: 2 }}>Đang tải giao dịch...</Typography>
+              </Box>
+            ) : transactions.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography variant="h6" color="text.secondary">
                   Chưa có giao dịch nào
                 </Typography>
               </Box>
             ) : (
-              <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Loại giao dịch</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Mô tả</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }} align="right">Số tiền</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Thời gian</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {transactions.map((transaction) => (
-                      <TableRow key={transaction.id} sx={{ '&:hover': { backgroundColor: '#f8fafc' } }}>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {getTransactionIcon(transaction.type)}
-                            <Chip
-                              label={getTransactionLabel(transaction.type)}
-                              color={getTransactionColor(transaction.type) as any}
-                              size="small"
-                            />
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {transaction.description}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography 
-                            variant="body1" 
-                            sx={{ 
-                              fontWeight: 600,
-                              color: transaction.type === 'refund' || transaction.type === 'deposit' 
-                                ? '#4CAF50' 
-                                : '#f44336'
-                            }}
-                          >
-                            {transaction.type === 'refund' || transaction.type === 'deposit' ? '+' : '-'}
-                            {formatPrice(transaction.amount)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {formatDate(transaction.created_at)}
-                          </Typography>
-                        </TableCell>
+              <>
+                <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+                        <TableCell sx={{ fontWeight: 600 }}>Loại giao dịch</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Mô tả</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Số tiền</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Thời gian</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableHead>
+                    <TableBody>
+                      {transactions.map((transaction) => (
+                        <TableRow key={transaction.id} sx={{ '&:hover': { backgroundColor: '#f8fafc' } }}>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {getTransactionIcon(transaction.type)}
+                              <Chip
+                                label={getTransactionLabel(transaction.type)}
+                                color={getTransactionColor(transaction.type) as any}
+                                size="small"
+                              />
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {transaction.description}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography 
+                              variant="body1" 
+                              sx={{ 
+                                fontWeight: 600,
+                                color: transaction.type === 'refund' || transaction.type === 'deposit' 
+                                  ? '#4CAF50' 
+                                  : '#f44336'
+                              }}
+                            >
+                              {transaction.type === 'refund' || transaction.type === 'deposit' ? '+' : '-'}
+                              {formatPrice(transaction.amount)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" color="text.secondary">
+                              {formatDate(transaction.created_at)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                {/* Pagination UI */}
+                {totalPages > 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                    <Pagination
+                      count={totalPages}
+                      page={currentPage}
+                      onChange={handlePageChange}
+                      color="primary"
+                    />
+                  </Box>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
