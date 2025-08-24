@@ -273,7 +273,7 @@ const Wallet = () => {
               Lịch sử giao dịch
             </Typography>
 
-            {!walletData?.transactions || walletData.transactions.length === 0 ? (
+            {transactions.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography variant="h6" color="text.secondary">
                   Chưa có giao dịch nào
@@ -291,7 +291,7 @@ const Wallet = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {walletData.transactions.map((transaction) => (
+                    {transactions.map((transaction) => (
                       <TableRow key={transaction.id} sx={{ '&:hover': { backgroundColor: '#f8fafc' } }}>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
