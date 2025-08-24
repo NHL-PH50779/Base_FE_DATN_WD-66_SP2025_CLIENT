@@ -420,7 +420,7 @@ const Home = () => {
           
           <Grid container spacing={6}>
             {services.map((service, index) => (
-              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
+              <Grid item xs={12} sm={6} md={3} key={index}>
                 <motion.div
                   initial={{ opacity: 0, y: 50 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -510,7 +510,7 @@ const Home = () => {
 
         <Grid container spacing={4}>
           {categories.slice(0, 8).map((category, index) => (
-            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={category.id}>
+            <Grid item xs={12} sm={6} md={3} key={category.id}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -626,7 +626,7 @@ const Home = () => {
           {featuredProducts.length > 0 && (
             <Grid container spacing={4} sx={{ alignItems: 'stretch' }}>
               {featuredProducts.map((product, index) => (
-                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={product.id} sx={{ display: 'flex' }}>
+                <Grid item xs={12} sm={6} md={3} key={product.id} sx={{ display: 'flex' }}>
                   <motion.div
                     initial={{ opacity: 0, y: 50 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -704,7 +704,7 @@ const Home = () => {
                 gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
               }
             ].map((news, index) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+              <Grid item xs={12} sm={6} md={4} key={index}>
                 <motion.div
                   initial={{ opacity: 0, y: 50 }}
                   whileInView={{ opacity: 1, y: 0 }}
