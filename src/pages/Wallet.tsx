@@ -266,9 +266,6 @@ const Wallet = () => {
               <Typography variant="h5" sx={{ fontWeight: 600, color: '#2c3e50' }}>
                 Lịch sử giao dịch
               </Typography>
-              <Button variant="outlined" startIcon={<FilterList />} onClick={() => fetchTransactions()}>
-                Áp dụng lọc
-              </Button>
             </Box>
 
             {/* Filter UI */}
