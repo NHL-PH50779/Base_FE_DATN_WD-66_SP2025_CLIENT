@@ -4,18 +4,18 @@ import axios from "axios";
 let networkQuality = 'good';
 let lastRequestTime = Date.now();
 
-// Adaptive timeout
+// Adaptive timeout - giảm thời gian chờ
 const getAdaptiveTimeout = () => {
   switch (networkQuality) {
-    case 'slow': return 60000;
-    case 'medium': return 45000;
-    default: return 30000;
+    case 'slow': return 20000;
+    case 'medium': return 15000;
+    default: return 10000;
   }
 };
 
 const instance = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
-  timeout: 30000,
+  timeout: 10000,
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
@@ -45,12 +45,12 @@ instance.interceptors.response.use(
       
       if (!config._retryCount) config._retryCount = 0;
       
-      if (config._retryCount < 3) {
+      if (config._retryCount < 2) {
         config._retryCount++;
-        config.timeout = getAdaptiveTimeout() + (config._retryCount * 15000);
+        config.timeout = getAdaptiveTimeout() + (config._retryCount * 5000);
         
-        console.log(`Retrying (${config._retryCount}/3) with timeout: ${config.timeout}ms`);
-        await new Promise(resolve => setTimeout(resolve, config._retryCount * 3000));
+        console.log(`Retrying (${config._retryCount}/2) with timeout: ${config.timeout}ms`);
+        await new Promise(resolve => setTimeout(resolve, config._retryCount * 1000));
         return instance(config);
       }
     }
@@ -59,12 +59,12 @@ instance.interceptors.response.use(
     if (!error.response && navigator.onLine) {
       if (!config._retryCount) config._retryCount = 0;
       
-      if (config._retryCount < 2) {
+      if (config._retryCount < 1) {
         config._retryCount++;
         config.timeout = getAdaptiveTimeout();
         
-        console.log(`Network retry (${config._retryCount}/2)`);
-        await new Promise(resolve => setTimeout(resolve, config._retryCount * 5000));
+        console.log(`Network retry (${config._retryCount}/1)`);
+        await new Promise(resolve => setTimeout(resolve, config._retryCount * 2000));
         return instance(config);
       }
     }
@@ -86,7 +86,7 @@ instance.interceptors.request.use(
     lastRequestTime = Date.now();
     
     // Set adaptive timeout
-    if (!config.timeout || config.timeout === 30000) {
+    if (!config.timeout || config.timeout === 10000) {
       config.timeout = getAdaptiveTimeout();
     }
     

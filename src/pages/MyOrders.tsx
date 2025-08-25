@@ -139,6 +139,14 @@ const MyOrders = () => {
   const fetchOrders = async (showLoadingIndicator = true) => {
     if (showLoadingIndicator) setLoading(true);
     try {
+      // Kiểm tra token trước khi gọi API
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showSnackbar('Vui lòng đăng nhập để xem đơn hàng!', 'error');
+        navigate('/login');
+        return;
+      }
+      
       const response = await orderService.getMyOrders();
       const newOrders = response.data || [];
       

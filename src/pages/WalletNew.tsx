@@ -113,10 +113,46 @@ const WalletNew = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Function format thời gian real-time
+  const formatTimeAgo = (dateString: string) => {
+    const now = currentTime;
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} giây trước`;
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} phút trước`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} giờ trước`;
+    } else if (diffInSeconds < 2592000) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} ngày trước`;
+    } else {
+      return date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
 
   useEffect(() => {
     fetchWalletData();
     fetchTransactions();
+    
+    // Cập nhật thời gian mỗi giây để hiển thị real-time
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    
+    return () => clearInterval(timeInterval);
   }, []);
 
   useEffect(() => {
@@ -527,7 +563,7 @@ const WalletNew = () => {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" color="text.secondary">
-                              {transaction.formatted_date}
+                              {formatTimeAgo(transaction.created_at)}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -605,7 +641,16 @@ const WalletNew = () => {
                 <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">Thời gian</Typography>
                   <Typography variant="body1">
-                    {selectedTransaction.formatted_date}
+                    {formatTimeAgo(selectedTransaction.created_at)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {new Date(selectedTransaction.created_at).toLocaleDateString('vi-VN', {
+                      day: '2-digit',
+                      month: '2-digit', 
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12 }}>

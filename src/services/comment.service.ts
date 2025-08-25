@@ -102,6 +102,7 @@ class CommentService {
     product_id: number;
     content: string;
     rating: number;
+    order_id?: number;
   }): Promise<void> {
     try {
       const token = localStorage.getItem('token');
@@ -112,7 +113,8 @@ class CommentService {
       await axios.post(`${API_BASE_URL}/comments`, {
         product_id: reviewData.product_id,
         content: reviewData.content.substring(0, 1000),
-        rating: reviewData.rating // Đánh giá có rating > 0
+        rating: reviewData.rating, // Đánh giá có rating > 0
+        order_id: reviewData.order_id // Thêm order_id
       });
     } catch (error) {
       console.error('Error adding review:', error);

@@ -35,7 +35,7 @@ import { productService } from "../services/product.service";
 import { categoryService } from "../services/category.service";
 import instance from "../apis";
 import ProductCard from "../components/ProductCard";
-import FlashSale from "../components/FlashSale";
+// Flash Sale component removed
 
 
 const Home = () => {
@@ -66,13 +66,13 @@ const Home = () => {
         let categories = [];
         
         try {
-          // Gọi trực tiếp API thay vì qua service
-          const response = await instance.get('/products', { timeout: 15000 });
-          console.log('Direct API response:', response);
+          // Gọi API home mới để có giá sản phẩm
+          const response = await instance.get('/products/home', { timeout: 15000 });
+          console.log('Home API response:', response);
           
           if (response.data && response.data.data) {
-            allProducts = response.data.data.slice(0, 12) || [];
-            console.log('Products after slice:', allProducts);
+            allProducts = response.data.data || [];
+            console.log('Products with prices:', allProducts);
           } else {
             console.error('Invalid response format:', response);
           }
@@ -401,8 +401,7 @@ Liên hệ tư vấn
         </Container>
       </Box>
 
-      {/* Flash Sale Section */}
-      <FlashSale />
+      {/* Flash Sale Section removed */}
 
       {/* Services Section */}
       <Box sx={{ background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', py: 12 }}>
@@ -665,113 +664,7 @@ Liên hệ tư vấn
         </Container>
       </Box>
 
-      {/* News Section */}
-      <Box sx={{ background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', py: 12 }}>
-        <Container>
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            <Box sx={{ textAlign: 'center', mb: 10 }}>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: '#82ca9d', 
-                  textTransform: 'uppercase',
-                  letterSpacing: 2,
-                  mb: 2,
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1
-                }}
-              >
-                <Recommend /> Tin tức
-              </Typography>
-              <Typography 
-                variant="h3" 
-                sx={{ 
-                  fontWeight: 800, 
-                  mb: 3,
-                  background: 'linear-gradient(45deg, #4682B4 30%, #87CEEB 90%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
-                }}
-              >
-                Tin tức công nghệ mới nhất
-              </Typography>
-            </Box>
-          </motion.div>
 
-          <Grid container spacing={4}>
-            {[
-              {
-                title: "Xu hướng laptop 2025",
-                content: "Khám phá những xu hướng mới nhất trong thế giới laptop năm 2025...",
-                gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-              },
-              {
-                title: "Công nghệ AI trong laptop",
-                content: "Tìm hiểu về những ứng dụng AI mới nhất được tích hợp vào laptop...",
-                gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-              },
-              {
-                title: "Mẹo chọn laptop phù hợp",
-                content: "Hướng dẫn chi tiết cách chọn laptop phù hợp với nhu cầu sử dụng...",
-                gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-              }
-            ].map((news, index) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
-                <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.2 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -10, scale: 1.02 }}
-                >
-                  <Card sx={{ 
-                    borderRadius: 4, 
-                    overflow: 'hidden', 
-                    height: '100%',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                    '&:hover': {
-                      boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
-                    }
-                  }}>
-                    <Box
-                      sx={{
-                        height: 200,
-                        background: news.gradient,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '3rem',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      📰
-                    </Box>
-                    <CardContent sx={{ p: 3 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#2c3e50' }}>
-                        {news.title}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#64748b', lineHeight: 1.6 }}>
-                        {news.content}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
 
       {/* View All Products Button */}
       <Box sx={{ 

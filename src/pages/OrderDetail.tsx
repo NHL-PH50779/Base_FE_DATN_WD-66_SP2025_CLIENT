@@ -166,11 +166,11 @@ const OrderDetail = () => {
       const responseData = response.data?.data || response.data || response;
       
       const orderData = {
-        ...responseData.order,
-        items: responseData.items || responseData.order.items || [],
-        total: parseFloat(responseData.total) || parseFloat(responseData.order.total) || 0,
-        discount_amount: parseFloat(responseData.order.coupon_discount) || 0,
-        voucher_code: responseData.order.coupon_code,
+        ...responseData,
+        items: responseData.items || [],
+        total: parseFloat(responseData.total) || 0,
+        discount_amount: parseFloat(responseData.coupon_discount) || 0,
+        voucher_code: responseData.coupon_code,
         shipping_fee: 0
       };
 
@@ -531,14 +531,34 @@ const OrderDetail = () => {
                           />
                         </Box>
                         <Box sx={{ flex: 1 }}>
-                          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                          <Typography 
+                            variant="h6" 
+                            sx={{ 
+                              fontWeight: 600, 
+                              mb: 1,
+                              cursor: 'pointer',
+                              color: 'primary.main',
+                              '&:hover': {
+                                textDecoration: 'underline'
+                              }
+                            }}
+                            onClick={() => navigate(`/product/${item.product_id}`)}
+                          >
                             {item.product?.name || 'Sản phẩm'}
                           </Typography>
-                          {item.product_variant && (
+                          {item.product_variant && item.product_variant.name ? (
                             <Chip
                               label={`Phân loại: ${item.product_variant.name}`}
                               size="small"
                               variant="outlined"
+                              sx={{ mb: 2 }}
+                            />
+                          ) : (
+                            <Chip
+                              label="Phân loại: Mặc định"
+                              size="small"
+                              variant="outlined"
+                              color="default"
                               sx={{ mb: 2 }}
                             />
                           )}
@@ -838,16 +858,7 @@ const OrderDetail = () => {
                   
 
                   
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    size="large"
-                    startIcon={<Receipt />}
-                    onClick={() => window.print()}
-                    sx={{ py: 1.5 }}
-                  >
-                    In hóa đơn
-                  </Button>
+
                 </Stack>
               </CardContent>
             </Card>

@@ -7,7 +7,7 @@ import {
   Message as MessageIcon, SmartToy as RobotIcon, Person as UserIcon,
   Send as SendIcon, SupportAgent as AdminIcon, Close as CloseIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import axiosInstance from '../utils/axios.util';
 
 interface Message {
   id: number;
@@ -68,80 +68,34 @@ const ChatBot = () => {
         let botResponse = '';
         
         // Tìm kiếm sản phẩm thông minh
-        const priceMatch = currentInput.match(/(trên|dưới|từ|đến)\s*(\d+)\s*(triệu|tr)/i);
-        const productNameMatch = currentInput.match(/thông tin về sản phẩm\s+(.+)|thông tin về\s+(.+)|sản phẩm\s+(.+)|(.+)\s+cho tôi thông tin|^(.+?)\s+(cho tôi|giúp tôi|thông tin)/i);
-        
-        if (priceMatch || currentInput.toLowerCase().includes('sản phẩm') || productNameMatch) {
+        if (currentInput.toLowerCase().includes('sản phẩm') || currentInput.toLowerCase().includes('tìm') || currentInput.toLowerCase().includes('giá')) {
           try {
-            const response = await axios.get('http://localhost:8000/api/products');
-            const products = response.data.data || response.data || [];
+            // Sử dụng API search đã cải thiện
+            const response = await axiosInstance.get(`/products/search?keyword=${encodeURIComponent(currentInput)}`);
+            const products = response.data.data || [];
+            const message = response.data.message || '';
             
-            let filteredProducts = products;
-            
-            // Tìm theo tên sản phẩm cụ thể
-            if (productNameMatch) {
-              const searchName = (productNameMatch[1] || productNameMatch[2] || productNameMatch[3] || productNameMatch[4] || productNameMatch[5] || '').trim();
-              if (searchName) {
-                // Tìm kiếm linh hoạt - tìm từng từ khóa
-                const keywords = searchName.toLowerCase().split(' ').filter(word => word.length > 2);
-                filteredProducts = products.filter((p: any) => {
-                  const productName = p.name.toLowerCase();
-                  return keywords.some(keyword => productName.includes(keyword)) ||
-                         productName.includes(searchName.toLowerCase());
-                });
-                
-                if (filteredProducts.length === 1) {
-                  const product = filteredProducts[0];
-                  botResponse = `📱 **${product.name}**\n\n💰 **Giá:** ${new Intl.NumberFormat('vi-VN').format(product.price)} VND\n\n📝 **Mô tả:** ${product.description || 'Đang cập nhật'}\n\n🏷️ **Thương hiệu:** ${product.brand?.name || 'Không rõ'}\n\n📂 **Danh mục:** ${product.category?.name || 'Không rõ'}\n\n✅ **Trạng thái:** ${product.is_active ? 'Còn hàng' : 'Hết hàng'}\n\nBạn có muốn biết thêm thông tin gì về sản phẩm này không?`;
-                } else if (filteredProducts.length > 1) {
-                  const productList = filteredProducts.slice(0, 3).map((p: any) => 
-                    `• ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.price)} VND`
-                  ).join('\n');
-                  botResponse = `Tôi tìm thấy ${filteredProducts.length} sản phẩm có tên "${searchName}":\n\n${productList}\n\nBạn có thể nói rõ hơn tên sản phẩm để tôi tìm chính xác hơn.`;
-                } else {
-                  botResponse = `Không tìm thấy sản phẩm nào có tên "${searchName}". Bạn có thể thử tìm với từ khóa khác hoặc liên hệ admin để được hỗ trợ.`;
-                }
-              }
-            }
-            // Tìm theo giá
-            else if (priceMatch) {
-              const operator = priceMatch[1].toLowerCase();
-              const amount = parseInt(priceMatch[2]) * 1000000;
+            if (products.length > 0) {
+              const productList = products.slice(0, 5).map((p: any) => {
+                const price = p.price || (p.variants && p.variants[0] ? p.variants[0].price : 0);
+                return `• ${p.name} - ${new Intl.NumberFormat('vi-VN').format(price)} VND\n  🔗 Xem chi tiết: http://localhost:5174/product/${p.id}`;
+              }).join('\n\n');
               
-              if (operator === 'trên') {
-                filteredProducts = products.filter((p: any) => p.price > amount);
-              } else if (operator === 'dưới') {
-                filteredProducts = products.filter((p: any) => p.price < amount);
-              }
-              
-              if (filteredProducts.length > 0) {
-                const productList = filteredProducts.slice(0, 5).map((p: any) => 
-                  `• ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.price)} VND`
-                ).join('\n');
-                
-                botResponse = `Tôi tìm thấy ${filteredProducts.length} sản phẩm ${operator} ${priceMatch[2]} triệu:\n\n${productList}\n\nBạn có thể xem chi tiết tại trang Shop hoặc liên hệ admin để được tư vấn thêm.`;
-              } else {
-                botResponse = `Không tìm thấy sản phẩm nào ${operator} ${priceMatch[2]} triệu. Vui lòng thử với mức giá khác.`;
-              }
-            }
-            // Hiển thị tất cả sản phẩm
-            else {
-              const productList = products.slice(0, 5).map((p: any) => 
-                `• ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.price)} VND`
-              ).join('\n');
-              
-              botResponse = `Đây là ${Math.min(products.length, 5)} sản phẩm nổi bật:\n\n${productList}\n\nBạn có thể hỏi về sản phẩm cụ thể bằng cách nói "thông tin về sản phẩm [tên sản phẩm]".`;
+              botResponse = `${message}:\n\n${productList}\n\nBạn có thể click vào link để xem chi tiết sản phẩm hoặc liên hệ admin để được tư vấn thêm.`;
+            } else {
+              botResponse = message || 'Không tìm thấy sản phẩm phù hợp. Bạn có thể thử tìm với từ khóa khác hoặc liên hệ admin để được hỗ trợ.';
             }
           } catch (error) {
-            botResponse = 'Chúng tôi có nhiều laptop chất lượng cao từ các thương hiệu Dell, HP, Asus, Lenovo. Bạn có thể xem danh sách sản phẩm tại trang Shop hoặc liên hệ admin để được tư vấn chi tiết.';
+            botResponse = 'Không thể tìm kiếm sản phẩm lúc này. Vui lòng thử lại sau hoặc liên hệ admin để được hỗ trợ.';
           }
-        } else if (currentInput.toLowerCase().includes('đơn hàng') || currentInput.toLowerCase().includes('order')) {
+        } else if (currentInput.toLowerCase().includes('đơn hàng') || currentInput.toLowerCase().includes('order') || 
+                   currentInput.toLowerCase().includes('đơn') || currentInput.toLowerCase().includes('giao') ||
+                   currentInput.toLowerCase().includes('đã giao') || currentInput.toLowerCase().includes('đang giao')) {
+
           try {
             const token = localStorage.getItem('token');
             if (token) {
-              const response = await axios.get('http://localhost:8000/api/my-orders', {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
+              const response = await axiosInstance.get('/my-orders');
               const orders = response.data.data || response.data || [];
               
               if (currentInput.toLowerCase().includes('hủy') || currentInput.toLowerCase().includes('cancel')) {
@@ -155,6 +109,31 @@ const ChatBot = () => {
                   botResponse = `Bạn có ${cancelledOrders.length} đơn hàng đã hủy:\n\n${orderList}\n\nBạn có thể xem chi tiết trong mục "Đơn hàng của tôi".`;
                 } else {
                   botResponse = 'Bạn không có đơn hàng nào đã bị hủy.';
+                }
+              } else if (currentInput.toLowerCase().includes('đang giao') || currentInput.toLowerCase().includes('giao')) {
+                const shippingOrders = orders.filter((o: any) => o.order_status_id === 3); // Đang giao
+                const deliveredOrders = orders.filter((o: any) => o.order_status_id === 4); // Đã giao
+                
+                if (currentInput.toLowerCase().includes('đã giao')) {
+                  if (deliveredOrders.length > 0) {
+                    const orderList = deliveredOrders.slice(0, 5).map((o: any) => 
+                      `• Đơn #${o.id} - ${new Intl.NumberFormat('vi-VN').format(o.total)} VND - ${new Date(o.created_at).toLocaleDateString('vi-VN')}`
+                    ).join('\n');
+                    
+                    botResponse = `Bạn có ${deliveredOrders.length} đơn hàng đã giao:\n\n${orderList}\n\nBạn có thể xác nhận hoàn thành đơn hàng trong mục "Đơn hàng của tôi".`;
+                  } else {
+                    botResponse = 'Bạn chưa có đơn hàng nào đã giao.';
+                  }
+                } else {
+                  if (shippingOrders.length > 0) {
+                    const orderList = shippingOrders.slice(0, 5).map((o: any) => 
+                      `• Đơn #${o.id} - ${new Intl.NumberFormat('vi-VN').format(o.total)} VND - ${new Date(o.created_at).toLocaleDateString('vi-VN')}`
+                    ).join('\n');
+                    
+                    botResponse = `Bạn có ${shippingOrders.length} đơn hàng đang giao:\n\n${orderList}\n\nBạn có thể theo dõi trong mục "Đơn hàng của tôi".`;
+                  } else {
+                    botResponse = 'Bạn không có đơn hàng nào đang giao.';
+                  }
                 }
               } else {
                 const recentOrders = orders.slice(0, 5).map((o: any) => {
@@ -215,9 +194,7 @@ const ChatBot = () => {
   const startHumanChat = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:8000/api/chat/start', {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await axiosInstance.post('/chat/start');
       setChatId(response.data.data.id);
       fetchHumanMessages(response.data.data.id);
     } catch (error) {
@@ -230,9 +207,7 @@ const ChatBot = () => {
   const fetchHumanMessages = async (id: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8000/api/chat/${id}/messages`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await axiosInstance.get(`/chat/${id}/messages`);
       setHumanMessages(response.data.data || []);
       setTimeout(() => scrollToBottom(humanMessagesEndRef), 100);
     } catch (error) {
@@ -246,10 +221,8 @@ const ChatBot = () => {
     setHumanLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:8000/api/chat/${chatId}/send`, {
+      await axiosInstance.post(`/chat/${chatId}/send`, {
         message: humanInput
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       setHumanInput('');
@@ -301,7 +274,22 @@ const ChatBot = () => {
           backgroundColor: msg.type === 'user' ? '#1976d2' : '#f5f5f5',
           color: msg.type === 'user' ? '#fff' : '#000'
         }}>
-          <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{msg.message}</Typography>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              whiteSpace: 'pre-line',
+              '& a': {
+                color: msg.type === 'user' ? '#fff' : '#1976d2',
+                textDecoration: 'underline'
+              }
+            }}
+            dangerouslySetInnerHTML={{
+              __html: msg.message.replace(
+                /(https?:\/\/[^\s]+)/g, 
+                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+              )
+            }}
+          />
           <Typography variant="caption" sx={{ opacity: 0.7, fontSize: 10 }}>
             {new Date(msg.timestamp).toLocaleTimeString('vi-VN')}
           </Typography>
